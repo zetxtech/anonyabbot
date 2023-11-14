@@ -250,7 +250,7 @@ class User(BaseModel):
 
     def add_role(self, roles: Iterable[UserRole], days: int = None):
         with db.atomic():
-            for r in roles:
+            for r in to_iterable(roles):
                 request = self.create_request(r, days=days)
                 self.add_validation(r, days=days, from_request=request)
 
