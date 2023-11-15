@@ -72,19 +72,20 @@ class GroupBot(MenuBot, _Methods):
                     logger.info(f"Stop listening updates in group with token {truncate_str(self.token, 20)}.")
 
     async def setup(self):
-        self.bot.add_handler(MessageHandler(self.on_message, filters.private & (~filters.service)))
-        self.bot.add_handler(EditedMessageHandler(self.on_edit_message, filters.private & (~filters.service)))
+        common_filter = filters.private & (~filters.outgoing) & (~filters.bot) & (~filters.service)
+        self.bot.add_handler(MessageHandler(self.on_message, common_filter))
+        self.bot.add_handler(EditedMessageHandler(self.on_edit_message, common_filter))
 
-        self.bot.add_handler(MessageHandler(self.on_delete, filters.private & filters.command("delete")))
-        self.bot.add_handler(MessageHandler(self.on_change, filters.private & filters.command("change")))
-        self.bot.add_handler(MessageHandler(self.on_setmask, filters.private & filters.command("setmask")))
-        self.bot.add_handler(MessageHandler(self.on_ban, filters.private & filters.command("ban")))
-        self.bot.add_handler(MessageHandler(self.on_unban, filters.private & filters.command("unban")))
-        self.bot.add_handler(MessageHandler(self.on_pin, filters.private & filters.command("pin")))
-        self.bot.add_handler(MessageHandler(self.on_unpin, filters.private & filters.command("unpin")))
-        self.bot.add_handler(MessageHandler(self.on_reveal, filters.private & filters.command("reveal")))
-        self.bot.add_handler(MessageHandler(self.on_manage, filters.private & filters.command("manage")))
-        self.bot.add_handler(MessageHandler(self.on_pm, filters.private & filters.command("pm")))
+        self.bot.add_handler(MessageHandler(self.on_delete, common_filter & filters.command("delete")))
+        self.bot.add_handler(MessageHandler(self.on_change, common_filter & filters.command("change")))
+        self.bot.add_handler(MessageHandler(self.on_setmask, common_filter & filters.command("setmask")))
+        self.bot.add_handler(MessageHandler(self.on_ban, common_filter & filters.command("ban")))
+        self.bot.add_handler(MessageHandler(self.on_unban, common_filter & filters.command("unban")))
+        self.bot.add_handler(MessageHandler(self.on_pin, common_filter & filters.command("pin")))
+        self.bot.add_handler(MessageHandler(self.on_unpin, common_filter & filters.command("unpin")))
+        self.bot.add_handler(MessageHandler(self.on_reveal, common_filter & filters.command("reveal")))
+        self.bot.add_handler(MessageHandler(self.on_manage, common_filter & filters.command("manage")))
+        self.bot.add_handler(MessageHandler(self.on_pm, common_filter & filters.command("pm")))
 
         self.menu.setup(self.bot)
 
