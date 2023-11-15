@@ -157,10 +157,10 @@ class Admin:
         sorting, desc = parameters.get("lga_sorting", ("members", True))
         if sorting == "activity":
             parameters["lga_sorting"] = ("activity", not desc)
-            await context.answer("🔽 Sort activity descending")
+            await context.answer("🔼 Sort oldest to newest" if desc else "🔽 Sort newest to oldest")
         else:
             parameters["lga_sorting"] = ("activity", True)
-            await context.answer("🔼 Sort activity ascending")
+            await context.answer("🔽 Sort newest to oldest")
         await self.to_menu("list_group_all", context)
 
     @operation(UserRole.ADMIN)
@@ -188,10 +188,10 @@ class Admin:
         sorting, desc = parameters.get("lga_sorting", ("members", True))
         if sorting == "members":
             parameters["lga_sorting"] = ("members", not desc)
-            await context.answer("🔽 Sort member descending")
+            await context.answer("🔼 Sort least member to most" if desc else "🔽 Sort most member to least")
         else:
             parameters["lga_sorting"] = ("members", True)
-            await context.answer("🔼 Sort member ascending")
+            await context.answer("🔽 Sort most member to least")
         await self.to_menu("list_group_all", context)
 
     @operation(UserRole.ADMIN)

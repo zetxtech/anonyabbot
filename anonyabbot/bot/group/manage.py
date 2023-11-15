@@ -282,8 +282,10 @@ class Manage:
         sorting, desc = parameters.get("lgm_sorting", ("role", True))
         if sorting == "activity":
             parameters["lgm_sorting"] = ("activity", not desc)
+            await context.answer("🔼 Sort oldest to newest" if desc else "🔽 Sort newest to oldest")
         else:
             parameters["lgm_sorting"] = ("activity", True)
+            await context.answer("🔽 Sort newest to oldest")
         await self.to_menu("list_group_members", context)
 
     @operation(MemberRole.ADMIN_BAN)
@@ -311,8 +313,10 @@ class Manage:
         sorting, desc = parameters.get("lgm_sorting", ("role", True))
         if sorting == "role":
             parameters["lgm_sorting"] = ("role", not desc)
+            await context.answer("🔼 Sort member to admin" if desc else "🔽 Sort admin to member")
         else:
             parameters["lgm_sorting"] = ("role", True)
+            await context.answer("🔽 Sort admin to member")
         await self.to_menu("list_group_members", context)
 
     @operation(MemberRole.ADMIN_BAN)
