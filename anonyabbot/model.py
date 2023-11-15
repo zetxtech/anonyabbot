@@ -499,6 +499,6 @@ class PMMessage(BaseModel):
     id = AutoField()
     from_member = ForeignKeyField(Member, null=True, backref="pm_messages")
     to_member = ForeignKeyField(Member, backref="received_pm_messages")
-    mid = IntegerField(unique=True)
-    redirected_mid = IntegerField(unique=True)
+    mid = IntegerField(index=True)
+    redirected_mid = IntegerField(index=True)
     time = DateTimeField(default=datetime.now)
