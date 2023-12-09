@@ -20,7 +20,7 @@ class OnMessage:
         message: TM,
     ):
         info = async_partial(self.info, context=message, time=None)
-        conv = self.conversion.get((message.chat.id, message.from_user.id), None)
+        conv = self.conversation.get((message.chat.id, message.from_user.id), None)
         user: User = message.from_user.get_record()
         if not conv:
             message.continue_propagation()

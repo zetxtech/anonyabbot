@@ -29,9 +29,10 @@ class Tree:
                     extras="_edbg_done",
                     per_page=8,
                 ): {M("edbg_select")},
-                M("edit_welcome_message", "⭐ Welcome Message"): {
+                M("edit_welcome_message", "⭐ Welcome Message", per_line=1): {
                     M("edit_welcome_message_message", "🧾 Edit Message"),
                     M("edit_welcome_message_button", "⌨️ Edit Buttons"),
+                    M("toggle_latest_message"),
                 },
                 M("edit_chat_instruction", "🧾 Chatting Instruction"): None,
                 P("list_group_members", "👤 Members", extras=["_lgm_switch_activity", "_lgm_switch_role"]): {M("jump_member_detail")},

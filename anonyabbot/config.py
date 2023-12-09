@@ -3,6 +3,7 @@ import functools
 from pathlib import Path
 from threading import Thread, Event
 import time
+from typing import Union
 
 from box import BoxError, ConfigBox
 from loguru import logger
@@ -75,11 +76,11 @@ class Config(ProxyBase):
         self._cache = box
         self.start_observer(conf_file, box)
 
-    def __getitem__(self, arg):
+    def __getitem__(self, key):
         try:
-            return self.__subject__[arg]
+            return self.__subject__[key]
         except BoxError:
-            msg = f'can not find config key "{arg}", please check your config file or env var.'
+            msg = f'can not find config key "{key}", please check your config file or env var.'
             raise ConfigError(msg) from None
 
-config: ConfigBox = Config()
+config: Union[ConfigBox, Config] = Config()

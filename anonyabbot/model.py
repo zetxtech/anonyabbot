@@ -88,6 +88,7 @@ class BanType(IntEnum):
     LONG_MASK_1 = 40, "pin a mask longer than 1 emojis"
     LONG_MASK_2 = 41, "pin a mask longer than 2 emojis"
     LONG_MASK_3 = 42, "pin a mask longer than 3 emojis"
+    MASK_STR = 43, "pin a mask with non-emojis"
     PM_USER = 50, "pm other user in the group"
     PM_ADMIN = 51, "pm admins in the group"
 
@@ -153,7 +154,7 @@ class User(BaseModel):
                 yield r
 
     @classmethod
-    def _all_in_role(cls, roles: Iterable[UserRole]):
+    def s_all_in_role(cls, roles: Iterable[UserRole]):
         return (
             cls.select()
             .join(Validation)
@@ -162,15 +163,15 @@ class User(BaseModel):
 
     @classmethod
     def all_in_role(cls, roles: Iterable[UserRole]):
-        for u in cls._all_in_role(roles).iterator():
+        for u in cls.s_all_in_role(roles).iterator():
             yield u
 
     @classmethod
     def n_in_role(cls, roles: Iterable[UserRole]):
-        return cls._all_in_role(roles).count()
+        return cls.s_all_in_role(roles).count()
 
     def validate(self, roles: Iterable[UserRole], fail=False, reversed=False):
-        if self._validation_for(roles).count():
+        if self.s_validation_for(roles).count():
             result = not reversed
         else:
             result = reversed
@@ -179,7 +180,7 @@ class User(BaseModel):
             raise UserRoleError(roles, reversed=reversed)
         return result
 
-    def _validation_for(self, roles: Iterable[UserRole] = None):
+    def s_validation_for(self, roles: Iterable[UserRole] = None):
         if roles is not None:
             return self.validations.where(
                 Validation.role << to_iterable(roles), (Validation.until > datetime.now()) | (Validation.until.is_null())
@@ -195,7 +196,7 @@ class User(BaseModel):
     ):
         with db.atomic():
             for role in to_iterable(roles):
-                validation: Validation = self._validation_for(role).get_or_none()
+                validation: Validation = self.s_validation_for(role).get_or_none()
                 if not validation:
                     if days is None:
                         until = None
@@ -216,7 +217,7 @@ class User(BaseModel):
         count = 0
         with db.atomic():
             v: Validation
-            for v in self._validation_for(roles).iterator():
+            for v in self.s_validation_for(roles).iterator():
                 v.until = datetime.now()
                 v.save()
                 count += 1
@@ -317,7 +318,7 @@ class BanGroup(BaseModel):
     created = DateTimeField(default=datetime.now)
     until = DateTimeField(default=datetime.now, null=True)
 
-    default_types = []
+    default_types = [BanType.LONG_MASK_2, BanType.LONG_MASK_3, BanType.MASK_STR]
 
     @classmethod
     def generate(cls, types: List[BanType] = None, until: datetime = None):
@@ -349,6 +350,7 @@ class Group(BaseModel):
     welcome_message = TextField(null=True, default=None)
     welcome_message_photo = TextField(null=True, default=None)
     welcome_message_buttons = TextField(null=True, default=None)
+    welcome_latest_messages = BooleanField(default=True)
     chat_instruction = TextField(null=True, default=None)
     disabled = BooleanField(default=False)
 
@@ -365,11 +367,11 @@ class Group(BaseModel):
         for e in self.default_ban_group.entries.iterator():
             yield e.type
 
-    def _all_has_role(self, role: MemberRole):
+    def s_all_has_role(self, role: MemberRole):
         return self.members.where(Member.role >= role, Member.role >= MemberRole.GUEST)
 
-    def all_has_role(self, roles: MemberRole):
-        for u in self._all_has_role(roles).iterator():
+    def all_has_role(self, role: MemberRole):
+        for u in self.s_all_has_role(role).iterator():
             yield u
 
     def user_members(self, users: List[User] = None):
@@ -461,7 +463,16 @@ class Member(BaseModel):
                     raise BanError(type=ban, member=False, until=self.group.default_ban_group.until)
                 return True
         return False
-
+    
+    def s_not_redirected_messages(self, limit: int = 10):
+        q = Message.select().where(~fn.EXISTS(RedirectedMessage.select().where((RedirectedMessage.message == Message.id) & (RedirectedMessage.to_member == self.id)))).order_by(Message.created.desc())
+        if limit:
+            q = q.limit(limit)
+        return q
+            
+    def not_redirected_messages(self, limit: int = 10):
+        for u in self.s_not_redirected_messages(limit=limit).iterator():
+            yield u
 
 class Message(BaseModel):
     id = AutoField()
@@ -469,6 +480,7 @@ class Message(BaseModel):
     mid = IntegerField(index=True)
     member = ForeignKeyField(Member, backref="messages")
     mask = CharField()
+    reply_to = ForeignKeyField('self', backref="replying_messages", null=True)
     updated = DateTimeField(default=datetime.now)
     created = DateTimeField(default=datetime.now)
 

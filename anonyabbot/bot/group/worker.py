@@ -1,12 +1,15 @@
 import asyncio
+import copy
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import List
 
 from pyrogram.types import Message as TM
 from pyrogram.errors import RPCError, UserIsBlocked, UserDeactivated
 
 import anonyabbot
 
+from ...cache import CacheQueue
 from ...model import MemberRole, Message, Member, BanType, RedirectedMessage
 from .. import pool
 
@@ -23,7 +26,6 @@ class Operation:
 class BroadcastOperation(Operation):
     context: TM
     message: Message
-    reply_to: Message = None
 
 
 @dataclass(kw_only=True)
@@ -41,25 +43,109 @@ class DeleteOperation(Operation):
 class PinOperation(Operation):
     message: Message
 
-
 @dataclass(kw_only=True)
 class UnpinOperation(Operation):
     message: Message
 
+@dataclass(kw_only=True)
+class BulkRedirectOperation(Operation):
+    messages: List[Message]
+
+class WorkerQueue(CacheQueue):
+    __noproxy__ = ("_bot",)
+    
+    def __init__(self, path=None, bot=None):
+        super().__init__(path)
+        self._bot = bot
+    
+    def save_hook(self, val):
+        results = []
+        for i in val:
+            ci = copy.copy(i)
+            ci.finished = None
+            results.append(ci)
+        return results
+    
+    def load_hook(self, val):
+        for i in val:
+            if i.finished is None:
+                i.finished = asyncio.Event()
+            ic = getattr(i, 'context', None)
+            if ic:
+                if not hasattr(ic, '_client'):
+                    setattr(ic, '_client', self._bot)
+        return val
 
 class Worker:
     async def report_status(self: "anonyabbot.GroupBot", time: int, requests: int, errors: int):
         self.worker_status['time'] += time
         self.worker_status['requests'] += requests
         self.worker_status['errors'] += errors
+        self.worker_status.save()
         async with pool.worker_status_lock:
             pool.worker_status['time'] += time
             pool.worker_status['requests'] += requests
             pool.worker_status['errors'] += errors
+            pool.worker_status.save()
+    
+    async def bulk_redirector(self: "anonyabbot.GroupBot", op: BulkRedirectOperation):
+        try:
+            if op.member.check_ban(BanType.RECEIVE, check_group=False, fail=False):
+                return
+            if op.member.is_banned:
+                return
+            for message in op.messages:
+                await asyncio.sleep(3)
+                if message.member.id == op.member.id:
+                    continue
+                
+                context = await self.bot.get_messages(self.group.username, message.mid)
+                
+                content = context.text or context.caption
+                if content:
+                    content = f"{message.mask} | {content}"
+                else:
+                    content = f"{message.mask} has sent a media."
+                
+                rmr = None
+                if message.reply_to:
+                    rmr = message.reply_to.get_redirect_for(m)
+
+                try:
+                    if context.text:
+                        context.text = content
+                        masked_message = await context.copy(
+                            op.member.user.uid,
+                            reply_to_message_id=rmr.mid if rmr else None,
+                        )
+                    else:
+                        masked_message = await context.copy(
+                            op.member.user.uid,
+                            caption=content,
+                            reply_to_message_id=rmr.mid if rmr else None,
+                        )
+                except RPCError as e:
+                    if isinstance(e, (UserIsBlocked, UserDeactivated)) and not op.member.role == MemberRole.CREATOR:
+                        op.member.role = MemberRole.LEFT
+                        op.member.save()
+                    op.errors += 1
+                else:
+                    RedirectedMessage(mid=masked_message.id, message=message, to_member=op.member).save()
+                finally:
+                    op.requests += 1
+            waiting_time = (datetime.now() - op.created).total_seconds() 
+            await self.report_status(waiting_time, op.requests, op.errors)
+        except Exception as e:
+            self.log.opt(exception=e).warning("Bulk redirector error:")
+        finally:
+            op.finished.set()
     
     async def worker(self: "anonyabbot.GroupBot"):
         while True:
             op = await self.queue.get()
+            if isinstance(op, BulkRedirectOperation):
+                asyncio.create_task(self.bulk_redirector(op))
+                continue
             try:
                 if not op:
                     break
@@ -85,8 +171,8 @@ class Worker:
                             continue
 
                         rmr = None
-                        if op.reply_to:
-                            rmr = op.reply_to.get_redirect_for(m)
+                        if op.message.reply_to:
+                            rmr = op.message.reply_to.get_redirect_for(m)
 
                         try:
                             if op.context.text:
@@ -224,8 +310,6 @@ class Worker:
                             op.errors += 1
                         finally:
                             op.requests += 1
-
-                
                 waiting_time = (datetime.now() - op.created).total_seconds() 
                 await self.report_status(waiting_time, op.requests, op.errors)
             except Exception as e:

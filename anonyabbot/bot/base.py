@@ -26,7 +26,7 @@ from .. import __name__ as __product__
 
 from ..utils import to_iterable
 from ..config import config
-from ..cache import cache
+from ..cache import Cache
 
 
 @dataclass
@@ -54,10 +54,10 @@ class Bot:
         self.tasks = []
 
     async def start(self):
-        self.tasks.extend([asyncio.create_task(j) for j in self.jobs])
         try:
             await self.bot.start()
             await self.setup()
+            self.tasks.extend([asyncio.create_task(j) for j in self.jobs])
             await asyncio.Event().wait()
         finally:
             for t in self.tasks:
@@ -70,7 +70,11 @@ class Bot:
     async def setup(self):
         raise NotImplementedError()
 
-    async def info(self, info: str, context: Union[TM, TC], reply: bool = False, time: int = 5, alert: bool = False):
+    async def info(self, info: str, context: Union[TM, TC], reply: bool = False, time: int = 5, block=True, alert: bool = False):
+        async def doit(time, msg):
+            await asyncio.sleep(time)
+            await msg.delete()
+        
         if isinstance(context, TM):
             if reply:
                 msg = await context.reply(
@@ -86,8 +90,11 @@ class Bot:
                     disable_web_page_preview=True,
                 )
             if time:
-                await asyncio.sleep(time)
-                await msg.delete()
+                if block:
+                    await asyncio.sleep(time)
+                    await msg.delete()
+                else:
+                    asyncio.create_task(doit(time, msg))
             return msg
         elif isinstance(context, TC):
             await context.answer(info, show_alert=alert)
@@ -98,8 +105,8 @@ class Bot:
 class MenuBot(Bot):
     def __init__(self, *args, **kw) -> None:
         super().__init__(*args, **kw)
-        self.conversion: Dict[Tuple[int, int], Conversation] = {}
-        redis = cache.get_redis()
+        self.conversation: Dict[Tuple[int, int], Conversation] = {}
+        redis = Cache.get_redis()
         if redis:
             db = RedisDatabase(redis)
         else:
@@ -115,7 +122,7 @@ class MenuBot(Bot):
             uid = context.from_user.id
         else:
             raise TypeError("context should be message or callback query.")
-        self.conversion[(chatid, uid)] = Conversation(context, status, data) if status else None
+        self.conversation[(chatid, uid)] = Conversation(context, status, data) if status else None
 
     async def to_menu(self, menu_id: str, context: Union[TM, TC], **kw):
         if isinstance(context, TC):
@@ -125,6 +132,7 @@ class MenuBot(Bot):
             params = kw
         else:
             raise TypeError("context should be message or callback query.")
+        params["element_id"] = ""
         await self.menu[menu_id].on_update(self.menu, self.bot, context, params)
 
     async def to_menu_scratch(self, menu_id: str, chat: Union[str, int], user: Union[str, int], **kw):
@@ -198,6 +206,7 @@ class MenuBot(Bot):
         web=False,
         markdown=True,
         default=False,
+        per_line=2,
     ):
         menu_params, style_params = self._prepare_params(
             id=id,
@@ -209,7 +218,7 @@ class MenuBot(Bot):
             markdown=markdown,
             default=default,
         )
-        return Menu(**menu_params, style=MenuStyle(**style_params))
+        return Menu(**menu_params, style=MenuStyle(**style_params, limit=per_line))
 
     def _keyboard(
         self,

@@ -29,7 +29,7 @@ def formatter(record):
         id = extra.get("id", "starting")
         return f"[medium_purple4]Bot ({id})[/] {{message}}"
     else:
-        return "[green][/] {message}"
+        return "{message}"
 
 
 logger.remove()

@@ -1,12 +1,12 @@
 import asyncio
 from datetime import datetime, timedelta
 import random
+from typing import Dict, Tuple
 
 import emoji
 
 from ...model import Member
-from ...cache import cache
-from ...utils import Proxy
+from ...cache import CacheDict
 
 
 class MaskNotAvailable(Exception):
@@ -25,14 +25,12 @@ class UniqueMask:
     def __init__(self, token: str):
         self.lock = asyncio.Lock()
         self.token = token
-        
-    @property
-    def users(self):
-        return Proxy(cache[f'group.{self.token}.unique_mask.users'])
-    
-    @property
-    def masks(self):
-        return Proxy(cache[f'group.{self.token}.unique_mask.masks'])
+        self.users: Dict[int, str] = CacheDict(f'group.{self.token}.unique_mask.users')
+        self.masks: Dict[str, Tuple[int, datetime]] = CacheDict(f'group.{self.token}.unique_mask.masks')
+
+    def save(self):
+        self.users.save()
+        self.masks.save()
 
     async def take_mask(self, member: Member, role: str):
         async with self.lock:
@@ -66,15 +64,18 @@ class UniqueMask:
                     self.users[member.id] = role
                     del self.masks[old_role]
                     self.masks[role] = (member.id, datetime.now())
+                    self.save()
                     return True, role
                 else:
                     role = self.users[member.id]
                     self.masks[role] = (member.id, datetime.now())
+                    self.save()
                     return False, role
             else:
                 role = self._get_mask()
                 self.users[member.id] = role
                 self.masks[role] = (member.id, datetime.now())
+                self.save()
                 return True, role
 
     def _get_mask(self):

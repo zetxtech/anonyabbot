@@ -21,7 +21,6 @@ class Manage:
         context: TC,
         parameters: dict,
     ):
-        context.parameters.pop("edbg_current", None)
         return (
             f"👑 Welcome group admin {context.from_user.name}.\n\n"
             "👁️‍🗨️ This panel is only visible to you.\n"
@@ -62,7 +61,10 @@ class Manage:
         context: TC,
         parameters: dict,
     ):
-        current_selection = parameters.get("edbg_current", None)
+        if parameters["menu_id"] == 'edbg_select':
+            current_selection = parameters.get("edbg_current", None)
+        else:
+            current_selection = None
         if not current_selection:
             parameters["edbg_current"] = current_selection = [t.value for t in self.group.default_bans()]
 
@@ -185,6 +187,32 @@ class Manage:
             "1. Each line will be a row of buttons.\n"
             "2. Use t.me/username to redirect to a user / group.\n"
         )
+    
+    @operation(MemberRole.ADMIN_MSG)
+    async def button_toggle_latest_message(
+        self: "anonyabbot.GroupBot",
+        handler,
+        client: Client,
+        context: TC,
+        parameters: dict,
+    ):
+        status = parameters.get("show_latest_message", self.group.welcome_latest_messages)
+        return ("✅" if status else "") + " Show latest messages"
+    
+    @operation(MemberRole.ADMIN_MSG)
+    async def on_toggle_latest_message(
+        self: "anonyabbot.GroupBot",
+        handler,
+        client: Client,
+        context: TC,
+        parameters: dict,
+    ):
+        status = not parameters.get("show_latest_message", True)
+        parameters["show_latest_message"] = status
+        self.group.welcome_latest_messages = status
+        self.group.save()
+        await context.answer('✅ Succeed.')
+        await self.to_menu('edit_welcome_message', context)
 
     @operation(MemberRole.ADMIN_MSG)
     async def on_ewmb_ok(
@@ -339,7 +367,6 @@ class Manage:
         context: TC,
         parameters: dict,
     ):
-        context.parameters.pop("edbg_current", None)
         target: Member = Member.get_by_id(parameters["member_id"])
         return (
             f"👤 Member profile of {target.user.markdown}:\n\n"
@@ -412,7 +439,11 @@ class Manage:
         parameters: dict,
     ):
         target: Member = Member.get_by_id(parameters["member_id"])
-        current_selection = parameters.get("embg_current", None)
+        
+        if parameters["menu_id"] == 'embg_select':
+            current_selection = parameters.get("embg_current", None)
+        else:
+            current_selection = None
         if not current_selection:
             if target.ban_group:
                 parameters["embg_current"] = current_selection = [t.type.value for t in target.ban_group.entries.iterator()]

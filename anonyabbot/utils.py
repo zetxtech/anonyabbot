@@ -6,6 +6,18 @@ import re
 from typing import Any, Coroutine, Iterable, Union
 from datetime import timedelta
 
+class _DefaultType:
+    def __new__(cls):
+        return Def
+
+    def __reduce__(self):
+        return (_DefaultType, ())
+
+    def __bool__(self):
+        return False
+
+
+Def = object.__new__(_DefaultType)
 
 class AsyncTaskPool:
     """A async task pool, which can dynamically add and wait task."""
@@ -298,3 +310,18 @@ class Proxy(ProxyBase):
 
     def set(self, val):
         self.__subject__ = val
+
+class FuncProxy(ProxyBase):
+    __noproxy__ = ("_func", "_args", "_kw")
+    
+    def __init__(self, func, *args, **kw):
+        self.set(func, *args, **kw)
+
+    def set(self, func, *args, **kw):
+        self._func = func
+        self._args = args
+        self._kw = kw
+        
+    @property
+    def __subject__(self):
+        return self._func(*self._args, **self._kw)

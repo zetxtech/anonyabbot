@@ -5,6 +5,8 @@ from pyrogram.types import Message as TM, CallbackQuery as TC, InlineKeyboardBut
 import anonyabbot
 
 from ...model import Member, User, MemberRole
+from ...utils import async_partial
+from .worker import BulkRedirectOperation
 from .common import operation
 
 
@@ -21,7 +23,7 @@ class Start:
         else:
             msg = (
                 "🌈 Welcome to this anonymous group powered by [@anonyabbot](t.me/anonyabbot).\n\n"
-                "All messages send to the bot will be redirected to all members with your identity hiden.\n"
+                "All messages send to the bot will be redirected to all members with your identity hidden.\n"
                 "You will use an emoji as your mask during chatting.\n"
                 "Only admins can reveal your identity.\n"
                 "Have fun!"
@@ -70,11 +72,25 @@ class Start:
                     button_spec=self.group.welcome_message_buttons,
                     photo=self.group.welcome_message_photo,
                 )
+                if self.group.welcome_latest_messages:
+                    nrm = member.s_not_redirected_messages(10)
+                    if nrm.count() > 0:
+                        e = asyncio.Event()
+                        op = BulkRedirectOperation(messages=reversed(list(nrm.iterator())), member=member, finished=e)
+                        info = async_partial(self.info, context=context)
+                        msg: TM = await info(f"🔃 Loading latest messages ...", time=None)
+                        await self.queue.put(op)
+                        try:
+                            await asyncio.wait_for(e.wait(), 120)
+                        except asyncio.TimeoutError:
+                            await msg.edit("⚠️ Timeout to load latest messages.")
+                            await asyncio.sleep(2)
+                        await msg.delete()
             else:
                 return (
                     "🌈 Group status:\n\n"
                     f" Members: {self.group.n_members}\n"
-                    f" Non-Guests: {self.group._all_has_role(MemberRole.MEMBER).count()}\n\n"
+                    f" Non-Guests: {self.group.s_all_has_role(MemberRole.MEMBER).count()}\n\n"
                     "👤 Your membership:\n\n"
                     f" Role: {member.role.display.title()}\n"
                     f' Mask: {mask if mask else "<Not Active>"}\n\n'

@@ -4,6 +4,7 @@ from datetime import datetime
 from loguru import logger
 
 from ..utils import AsyncTaskPool
+from ..cache import CacheDict
 from ..model import Group, User
 from .group import GroupBot
 
@@ -17,7 +18,14 @@ start_queue = asyncio.Queue()
 
 start_time = datetime.now()
 
-worker_status = {'time': 0, 'requests': 0, 'errors': 0}
+worker_status = CacheDict(
+    'system.statistics.worker.status',
+    default={
+        'time': 0,
+        'requests': 0,
+        'errors': 0
+    }
+)
 worker_status_lock = asyncio.Lock()
 
 async def queue_monitor():

@@ -63,7 +63,7 @@ class OnMessage:
         context: TC,
         parameters: dict,
     ):
-        conv = self.conversion.get((context.message.chat.id, context.from_user.id), None)
+        conv = self.conversation.get((context.message.chat.id, context.from_user.id), None)
         if conv.status == "ci_confirm":
             event: asyncio.Event = conv.data
             event.set()
@@ -71,12 +71,12 @@ class OnMessage:
 
     @operation(req=None, conversation=True, allow_disabled=True)
     async def on_message(self: "anonyabbot.GroupBot", client: Client, message: TM):
-        info = async_partial(self.info, context=message)
+        info = async_partial(self.info, context=message, block=False)
         
         if message.text and message.text.startswith("/"):
             message.continue_propagation()
 
-        conv = self.conversion.get((message.chat.id, message.from_user.id), None)
+        conv = self.conversation.get((message.chat.id, message.from_user.id), None)
         if conv:
             try:
                 if conv.status == "ewmm_message":
@@ -137,20 +137,23 @@ class OnMessage:
                             return
                         try:
                             member.check_ban(BanType.PIN_MASK)
-                            m = "".join(e["emoji"] for e in emoji.emoji_list(str(message.text)))
-                            if not m:
-                                raise OperationError("only emojis are acceptable as masks")
-                            if len(m) > 1:
-                                member.check_ban(BanType.LONG_MASK_1)
-                            if len(m) >= 3:
-                                member.check_ban(BanType.LONG_MASK_2)
-                            if len(m) >= 3:
-                                member.check_ban(BanType.LONG_MASK_3)
+                            if not member.check_ban(BanType.MASK_STR, fail=False):
+                                m = str(message.text)
+                            else:
+                                m = "".join(e["emoji"] for e in emoji.emoji_list(str(message.text)))
+                                if not m:
+                                    raise OperationError("only emojis are acceptable as masks")
+                                if len(m) > 1:
+                                    member.check_ban(BanType.LONG_MASK_1)
+                                if len(m) >= 3:
+                                    member.check_ban(BanType.LONG_MASK_2)
+                                if len(m) >= 3:
+                                    member.check_ban(BanType.LONG_MASK_3)
                             dup_member = Member.get_or_none(Member.group == self.group, Member.pinned_mask == m)
                             if dup_member:
-                                raise OperationError("this mask is already taken")
-                            if not self.unique_mask_pool.take_mask(member, m):
-                                raise OperationError("this mask is already taken")
+                                raise OperationError("this mask has already been taken")
+                            if not await self.unique_mask_pool.take_mask(member, m):
+                                raise OperationError("this mask has already been taken")
                         except OperationError as e:
                             await info(f"⚠️ Sorry, {e}.")
                             await conv.data.delete()
@@ -170,7 +173,7 @@ class OnMessage:
         try:
             member: Member = message.from_user.get_member(self.group)
             if not member:
-                raise OperationError("you are not in this group, try /start to join.")
+                raise OperationError("you are not in this group, try /start to join")
             self.check_message(message, member)
         except OperationError as e:
             await info(f"⚠️ Sorry, {e}, and this message will be deleted soon.", time=30)
@@ -219,12 +222,12 @@ class OnMessage:
         else:
             rmm = None
                 
-        m = Message.create(group=self.group, mid=message.id, member=member, mask=mask)
+        m = Message.create(group=self.group, mid=message.id, member=member, mask=mask, reply_to=rmm)
         member.last_mask = mask
         member.save()
 
         e = asyncio.Event()
-        op = BroadcastOperation(context=message, member=member, finished=e, message=m, reply_to=rmm)
+        op = BroadcastOperation(context=message, member=member, finished=e, message=m)
         
         if created:
             msg: TM = await info(f"🔃 Message sending as {mask} ...", time=None)

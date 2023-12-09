@@ -7,12 +7,12 @@ from pyrogram.handlers import MessageHandler, EditedMessageHandler
 from pyrogram.errors import UserDeactivated
 from pyrogram.types import BotCommand
 
-from ...utils import Proxy, truncate_str
-from ...cache import cache
+from ...utils import truncate_str
+from ...cache import CacheDict
 from ...model import UserRole, db, BanGroup, Group, User, Member, MemberRole
 from ..base import MenuBot
 from .mask import UniqueMask
-from .worker import Worker
+from .worker import Worker, WorkerQueue
 from .on_message import OnMessage
 from .command import OnCommand
 from .tree import Tree
@@ -23,7 +23,6 @@ from .manage import Manage
 class _Methods(Worker, Tree, OnMessage, OnCommand, Start, Manage):
     pass
 
-
 class GroupBot(MenuBot, _Methods):
     def __init__(self, token: str, creator: User = None, booted: asyncio.Event = None) -> None:
         self.name = hashlib.sha1(token.encode()).hexdigest()[:8]
@@ -33,8 +32,15 @@ class GroupBot(MenuBot, _Methods):
         self.boot_exception = None
         self.log = logger.bind(scheme="group")
         self.unique_mask_pool = UniqueMask(self.token)
-        self.queue = asyncio.Queue()
-        self.worker_status = {'time': 0, 'requests': 0, 'errors': 0}
+        self.queue = WorkerQueue(f'group.{self.token}.worker.queue', self.bot)
+        self.worker_status = CacheDict(
+            f'group.{self.token}.worker.status',
+            default={
+                'time': 0,
+                'requests': 0,
+                'errors': 0
+            }
+        )
         self.jobs.append(self.worker())
         self.group: Group = Group.get_or_none(token=self.token)
         if self.group:
@@ -42,13 +48,8 @@ class GroupBot(MenuBot, _Methods):
         else:
             self.creator = creator
 
-    @property
-    def worker_status(self):
-        return Proxy(cache[f'group.{self.token}.worker_status'])
-
     async def start(self):
         try:
-            self.tasks.extend([asyncio.create_task(j) for j in self.jobs])
             try:
                 await self.bot.start()
                 await self.setup()
@@ -61,6 +62,7 @@ class GroupBot(MenuBot, _Methods):
                 self.boot_exception = e
                 return
             finally:
+                self.tasks.extend([asyncio.create_task(j) for j in self.jobs])
                 self.booted.set()
             await self.failed.wait()
         finally:
@@ -94,7 +96,7 @@ class GroupBot(MenuBot, _Methods):
 
         self.menu.setup(self.bot)
 
-        self.bot.add_handler(MessageHandler(self.on_unknown, filters.private))
+        self.bot.add_handler(MessageHandler(self.on_unknown, common_filter))
 
         await self.bot.set_bot_commands([BotCommand("start", "Open panel")])
 
