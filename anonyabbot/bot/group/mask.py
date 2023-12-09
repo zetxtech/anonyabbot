@@ -5,6 +5,8 @@ import random
 import emoji
 
 from ...model import Member
+from ...cache import cache
+from ...utils import Proxy
 
 
 class MaskNotAvailable(Exception):
@@ -12,13 +14,37 @@ class MaskNotAvailable(Exception):
 
 
 class UniqueMask:
-    emojis = emoji.distinct_emoji_list("🐶🐱🐹🐰🦊🐼🐯🐮🦁🐸🐵🐔🐧🐥🦆🦅🦉🦄🐝🦋🐌🐙🦖🦀🐠🐳🐘🐿👻🎃🦕🐡🎄🍄🍁🐚🧸🎩🕶🐟🐬🦁🐲🪽🚤🛶")
+    emojis = emoji.distinct_emoji_list(
+        "🐶🐱🐹🐰🦊🐼🐯🐮🦁🐸🐵🐔🐧🐥🦆🦅🦉🦄🐝🦋🐌🐙🦖"
+        "🦀🐠🐳🐘🐿👻🎃🦕🐡🎄🍄🍁🐚🧸🎩🕶🐟🐬🦁🐲🚤🛶🦞"
+        "🦑🎄🐚👽🎃🧸♠️♣️♥️♦️🃏🔮🛸⛵️🎲🧊🍩🍪🍭🌶🍗🍖☘️🍄🤡"
+        "🧩🌀🏮🪄🏀⚽️🏈🎱🪁🍥🍦🧁🍓🫐🍇🍉🍋🍐🍎🍒🍑🥝🍆"
+        "🥑🥕🌽🥐🎷♟🏖🏔⚓️🛵🔯☮️☯️🆙🏴‍☠️⏳⛩🦧🌴🌷🌞🧶🐳🧿"
+    )
 
-    def __init__(self, *args, **kw):
-        super().__init__(*args, **kw)
+    def __init__(self, token: str):
         self.lock = asyncio.Lock()
-        self.users = {}
-        self.masks = {}
+        self.token = token
+        
+    @property
+    def users(self):
+        return Proxy(cache[f'group.{self.token}.unique_mask.users'])
+    
+    @property
+    def masks(self):
+        return Proxy(cache[f'group.{self.token}.unique_mask.masks'])
+
+    async def take_mask(self, member: Member, role: str):
+        async with self.lock:
+            if role in self.masks:
+                uid, t = self.masks[role]
+                if t > (datetime.now() + timedelta(days=3)):
+                    return False
+                else:
+                    del self.users[uid]
+            self.users[member.id] = role
+            self.masks[role] = (member.id, datetime.now())
+            return True   
 
     async def has_mask(self, member: Member):
         async with self.lock:
@@ -59,7 +85,7 @@ class UniqueMask:
         for role, (uid, t) in self.masks.items():
             if t > (datetime.now() + timedelta(days=3)):
                 continue
-            if t < oldest_avail:
+            if (not oldest_avail) or (t < oldest_avail):
                 oldest_avail = role
         if oldest_avail:
             uid, _ = self.masks[oldest_avail]

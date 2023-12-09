@@ -219,7 +219,8 @@ class Manage:
             msg = f"🧾 Chat instruction is not set.\n\n"
         msg += (
             "ℹ️ Chat instruction is a note that requires user consent before sending any anonymous message.\n\n"
-            "```ℹ️ Example:\n"
+            "ℹ️ Example:"
+            "```Example\n"
             "⭐ Read this before you send your first anonymous message:\n\n"
             "1. Messages will be broadcasted to other members with your identity hidden.\n"
             "2. **DO NOT** delete the message with telegram directly. Instead, use `/delete`.\n"

@@ -1,6 +1,6 @@
 import asyncio
 from pyrogram import Client
-from pyrogram.types import Message as TM, CallbackQuery as TC
+from pyrogram.types import Message as TM
 from pyrogram.errors import RPCError
 
 import anonyabbot
@@ -251,7 +251,7 @@ class OnCommand:
             try:
                 created, mask = await self.unique_mask_pool.get_mask(member)
             except MaskNotAvailable:
-                await info(f"⚠️ Sorry, no mask is currently available, and this message will be deleted soon.", time=30)
+                await info(f"⚠️ Sorry, no mask is currently available, please set mask manually and try again. This message will be deleted soon.", time=30)
                 await message.delete()
                 return
         

@@ -7,7 +7,8 @@ from pyrogram.handlers import MessageHandler, EditedMessageHandler
 from pyrogram.errors import UserDeactivated
 from pyrogram.types import BotCommand
 
-from ...utils import truncate_str
+from ...utils import Proxy, truncate_str
+from ...cache import cache
 from ...model import UserRole, db, BanGroup, Group, User, Member, MemberRole
 from ..base import MenuBot
 from .mask import UniqueMask
@@ -31,7 +32,7 @@ class GroupBot(MenuBot, _Methods):
         self.failed = asyncio.Event()
         self.boot_exception = None
         self.log = logger.bind(scheme="group")
-        self.unique_mask_pool = UniqueMask()
+        self.unique_mask_pool = UniqueMask(self.token)
         self.queue = asyncio.Queue()
         self.worker_status = {'time': 0, 'requests': 0, 'errors': 0}
         self.jobs.append(self.worker())
@@ -40,6 +41,10 @@ class GroupBot(MenuBot, _Methods):
             self.creator = self.group.creator
         else:
             self.creator = creator
+
+    @property
+    def worker_status(self):
+        return Proxy(cache[f'group.{self.token}.worker_status'])
 
     async def start(self):
         try:

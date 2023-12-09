@@ -75,9 +75,14 @@ class Start:
         self.set_conversation(context, "ng_token")
         return (
             "🌈 Guide\n\n"
-            "Your anonymous group will be a newly created bot (yes, bot).\n"
-            "Any information sent by anyone to the bot will be forwarded to all users with their identity hidden.\n"
-            "You need to create a new bot through @botfather and forward the message including bot token to me."
+            "Your anonymous group will be a newly created bot (yes, bot).\n\n"
+            "Any information sent by anyone to the bot will be forwarded to all users with their identity hidden.\n\n"
+            "You need to create a new bot and forward the message including bot token to me:\n\n"
+            "1. Goto @botfather.\n"
+            "2. Send command `/newbot`.\n"
+            "3. Type your group's title.\n"
+            "4. Type your group's username.\n"
+            "5. Forward the message containing token to me."
         )
 
     @operation()

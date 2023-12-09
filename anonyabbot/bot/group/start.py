@@ -55,11 +55,11 @@ class Start:
         context: TM,
         parameters: dict,
     ):
-        if isinstance(context, TM):
-            await context.delete()
         member: Member = context.from_user.get_member(self.group)
         user: User = context.from_user.get_record()
         if member:
+            if isinstance(context, TM):
+                await context.delete()
             mask = member.pinned_mask or await self.unique_mask_pool.mask_for(member)
             if member.role == MemberRole.LEFT:
                 member.role = MemberRole.GUEST

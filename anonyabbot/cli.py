@@ -64,6 +64,7 @@ def main(
 ):
     config.reload_conf(config_file)
     basedir = Path(config.get("basedir", user_data_dir(__product__)))
+    logger.debug(f'Now using basedir at "{basedir.absolute()}"')
     basedir.mkdir(parents=True, exist_ok=True)
     db.init(str(basedir / f"{__product__}.db"), pragmas={"journal_mode": "wal"})
     db.create_tables(BaseModel.__subclasses__())

@@ -13,3 +13,5 @@ python-dateutil
 emoji
 tgcrypto
 aenum
+redisworks
+watchdog

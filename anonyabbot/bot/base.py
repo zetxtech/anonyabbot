@@ -12,6 +12,7 @@ from pyrogram.enums import ParseMode
 from pyrubrum import (
     ParameterizedHandler,
     DictDatabase,
+    RedisDatabase,
     Element,
     Menu,
     LinkMenu,
@@ -25,6 +26,7 @@ from .. import __name__ as __product__
 
 from ..utils import to_iterable
 from ..config import config
+from ..cache import cache
 
 
 @dataclass
@@ -45,7 +47,7 @@ class Bot:
             api_id=config["tele.api_id"],
             api_hash=config["tele.api_hash"],
             proxy=config.get("proxy", None),
-            workdir=user_data_dir(__product__),
+            workdir=config.get("basedir", user_data_dir(__product__)),
             workers=128,
         )
         self.jobs = []
@@ -97,7 +99,12 @@ class MenuBot(Bot):
     def __init__(self, *args, **kw) -> None:
         super().__init__(*args, **kw)
         self.conversion: Dict[Tuple[int, int], Conversation] = {}
-        self.menu = ParameterizedHandler(self.tree, DictDatabase())
+        redis = cache.get_redis()
+        if redis:
+            db = RedisDatabase(redis)
+        else:
+            db = DictDatabase()
+        self.menu = ParameterizedHandler(self.tree, db)
 
     def set_conversation(self, context: Union[TM, TC], status: str = None, data=None):
         if isinstance(context, TC):
