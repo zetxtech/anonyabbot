@@ -5,7 +5,7 @@ from pyrogram.errors import RPCError
 
 import anonyabbot
 
-from ...model import MemberRole, Member, OperationError, BanType, Message, PMBan, PMMessage, RedirectedMessage
+from ...model import MemberRole, Member, OperationError, BanType, Message, PMBan, PMMessage, RedirectedMessage, User
 from ...utils import async_partial
 from .common import operation
 from .worker import DeleteOperation, PinOperation, UnpinOperation
@@ -68,6 +68,10 @@ class OnCommand:
     async def on_setmask(self: "anonyabbot.GroupBot", client: Client, message: TM):
         await message.delete()
         info = async_partial(self.info, context=message)
+        user: User = message.from_user.get_record()
+        if not user.is_prime:
+            await info(f"⚠️ This function is only available to [prime](t.me/{self.bot.me.username}?start=_createcode) users.")
+            return
         msg: TM = await info("⬇️ Please enter an emoji as your mask:", time=None)
         self.set_conversation(message, "sm_mask", data=msg)
         await asyncio.sleep(120)
@@ -159,7 +163,13 @@ class OnCommand:
     async def on_pin(self: "anonyabbot.GroupBot", client: Client, message: TM):
         await message.delete()
         info = async_partial(self.info, context=message)
+        user: User = message.from_user.get_record()
+        if (not self.group.is_prime) and (not user.is_prime):
+            await info(f"⚠️ This function is only available to groups created by [prime](t.me/{self.bot.me.username}?start=_createcode) users.")
+            return
         member, mr = self.get_member_reply_message(message)
+        mr.pinned = True
+        mr.save()
         e = asyncio.Event()
         op = PinOperation(member=member, finished=e, message=mr)
         await self.queue.put(op)
@@ -177,7 +187,13 @@ class OnCommand:
     async def on_unpin(self: "anonyabbot.GroupBot", client: Client, message: TM):
         await message.delete()
         info = async_partial(self.info, context=message)
+        user: User = message.from_user.get_record()
+        if (not self.group.is_prime) and (not user.is_prime):
+            await info(f"⚠️ This function is only available to groups created by [prime](t.me/{self.bot.me.username}?start=_createcode) users.")
+            return
         member, mr = self.get_member_reply_message(message)
+        mr.pinned = False
+        mr.save()
         e = asyncio.Event()
         op = UnpinOperation(member=member, finished=e, message=mr)
         await self.queue.put(op)
@@ -219,7 +235,7 @@ class OnCommand:
 
     async def pm(self, message: TM):
         info = async_partial(self.info, context=message)
-        
+
         content = message.text or message.caption
         
         try:
@@ -283,6 +299,10 @@ class OnCommand:
     @operation(MemberRole.MEMBER)
     async def on_pm(self: "anonyabbot.GroupBot", client: Client, message: TM):
         info = async_partial(self.info, context=message)
+        
+        if not self.group.is_prime:
+            await info(f"⚠️ This function is only available to groups created by [prime](t.me/{self.bot.me.username}?start=_createcode) users.")
+            return
         
         content = message.text or message.caption
         

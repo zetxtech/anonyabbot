@@ -50,6 +50,10 @@ class UnpinOperation(Operation):
 @dataclass(kw_only=True)
 class BulkRedirectOperation(Operation):
     messages: List[Message]
+    
+@dataclass(kw_only=True)
+class BulkPinOperation(Operation):
+    messages: List[Message]
 
 class WorkerQueue(CacheQueue):
     __noproxy__ = ("_bot",)
@@ -95,11 +99,11 @@ class Worker:
             if op.member.is_banned:
                 return
             for message in op.messages:
-                await asyncio.sleep(3)
+                await asyncio.sleep(1)
                 if message.member.id == op.member.id:
                     continue
                 
-                context = await self.bot.get_messages(self.group.username, message.mid)
+                context = await self.bot.get_messages(message.member.user.uid, message.mid)
                 
                 content = context.text or context.caption
                 if content:
@@ -124,6 +128,9 @@ class Worker:
                             caption=content,
                             reply_to_message_id=rmr.mid if rmr else None,
                         )
+                    if not masked_message:
+                        op.errors += 1
+                        continue
                 except RPCError as e:
                     if isinstance(e, (UserIsBlocked, UserDeactivated)) and not op.member.role == MemberRole.CREATOR:
                         op.member.role = MemberRole.LEFT
@@ -139,12 +146,45 @@ class Worker:
             self.log.opt(exception=e).warning("Bulk redirector error:")
         finally:
             op.finished.set()
+            
+    async def bulk_pinner(self: "anonyabbot.GroupBot", op: BulkPinOperation):
+        try:
+            if op.member.check_ban(BanType.RECEIVE, check_group=False, fail=False):
+                return
+            if op.member.is_banned:
+                return
+            for message in op.messages:
+                try:
+                    if op.member.id == message.member.id:
+                        await self.bot.pin_chat_message(
+                            op.member.user.uid, message.mid, both_sides=True, disable_notification=True
+                        )
+                    else:
+                        masked_message = message.get_redirect_for(op.member)
+                        if masked_message:
+                            await self.bot.pin_chat_message(
+                                op.member.user.uid, masked_message.mid, both_sides=True, disable_notification=True
+                            )
+                except RPCError as e:
+                    if isinstance(e, (UserIsBlocked, UserDeactivated)) and not op.member.role == MemberRole.CREATOR:
+                        op.member.role = MemberRole.LEFT
+                        op.member.save()
+                    op.errors += 1
+                finally:
+                    op.requests += 1
+        except Exception as e:
+            self.log.opt(exception=e).warning("Bulk pinner error:")
+        finally:
+            op.finished.set()
     
     async def worker(self: "anonyabbot.GroupBot"):
         while True:
             op = await self.queue.get()
             if isinstance(op, BulkRedirectOperation):
                 asyncio.create_task(self.bulk_redirector(op))
+                continue
+            if isinstance(op, BulkPinOperation):
+                asyncio.create_task(self.bulk_pinner(op))
                 continue
             try:
                 if not op:
@@ -187,6 +227,9 @@ class Worker:
                                     caption=content,
                                     reply_to_message_id=rmr.mid if rmr else None,
                                 )
+                            if not masked_message:
+                                op.errors += 1
+                                continue
                         except RPCError as e:
                             if isinstance(e, (UserIsBlocked, UserDeactivated)) and not m.role == MemberRole.CREATOR:
                                 m.role = MemberRole.LEFT

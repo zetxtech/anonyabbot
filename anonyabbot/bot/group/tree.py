@@ -15,6 +15,8 @@ class Tree:
             M("start"): {
                 M("leave_group_confirm", "⏏️ Leave Group"): {M("leave_group", "⚠️ Yes, I am sure.")},
                 M("manage_group", "⚒️ Manage Group"): None,
+                L("anonyabbot", "👤 New Group", url="t.me/anonyabbot"): None,
+                L("prime", "👑 Get Prime", url="t.me/anonyabbot?start=_createcode"): None,
                 M("close_start", "❌ Close"): None,
             },
             M("_group_details"): {
@@ -30,9 +32,9 @@ class Tree:
                     per_page=8,
                 ): {M("edbg_select")},
                 M("edit_welcome_message", "⭐ Welcome Message", per_line=1): {
-                    M("edit_welcome_message_message", "🧾 Edit Message"),
-                    M("edit_welcome_message_button", "⌨️ Edit Buttons"),
-                    M("toggle_latest_message"),
+                    M("edit_welcome_message_message", "🧾 Edit Message"): None,
+                    M("edit_welcome_message_button", "⌨️ Edit Buttons"): None,
+                    M("toggle_latest_message"): None,
                 },
                 M("edit_chat_instruction", "🧾 Chatting Instruction"): None,
                 P("list_group_members", "👤 Members", extras=["_lgm_switch_activity", "_lgm_switch_role"]): {M("jump_member_detail")},

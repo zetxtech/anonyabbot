@@ -6,7 +6,7 @@ import anonyabbot
 
 from ...model import Member, User, MemberRole
 from ...utils import async_partial
-from .worker import BulkRedirectOperation
+from .worker import BulkRedirectOperation, BulkPinOperation
 from .common import operation
 
 
@@ -22,12 +22,15 @@ class Start:
             )
         else:
             msg = (
-                "🌈 Welcome to this anonymous group powered by [@anonyabbot](t.me/anonyabbot).\n\n"
+                "🌈 Welcome to this fully anonymous group.\n\n"
                 "All messages send to the bot will be redirected to all members with your identity hidden.\n"
                 "You will use an emoji as your mask during chatting.\n"
                 "Only admins can reveal your identity.\n"
                 "Have fun!"
             )
+        
+        if not 'anonyabbot' in msg:
+            msg += '\n\n © Powered by @anonyabbot.'
 
         if button_spec:
             keyboard = []
@@ -48,6 +51,49 @@ class Start:
             return await self.bot.send_photo(user.uid, photo, caption=msg, reply_markup=markup)
         else:
             return await self.bot.send_message(user.uid, msg, reply_markup=markup)
+        
+    async def send_latest_messages(self: "anonyabbot.GroupBot", member: Member, context: TM):
+        if self.group.welcome_latest_messages:
+            nrpm = member.not_redirected_pinned_messages()
+            if len(nrpm) > 0:
+                e = asyncio.Event()
+                op = BulkRedirectOperation(messages=reversed(nrpm), member=member, finished=e)
+                info = async_partial(self.info, context=context)
+                msg: TM = await info(f"🔃 Loading pinned messages ...", time=None)
+                await self.queue.put(op)
+                try:
+                    await asyncio.wait_for(e.wait(), 120)
+                except asyncio.TimeoutError:
+                    await msg.edit("⚠️ Timeout to load pinned messages.")
+                    await asyncio.sleep(3)
+                await msg.delete()
+            
+                e = asyncio.Event()
+                op = BulkPinOperation(messages=reversed(list(member.pinned_messages())), member=member, finished=e)
+                info = async_partial(self.info, context=context)
+                msg: TM = await info(f"🔃 Pinning messages ...", time=None)
+                await self.queue.put(op)
+                try:
+                    await asyncio.wait_for(e.wait(), 120)
+                except asyncio.TimeoutError:
+                    await msg.edit("⚠️ Timeout to pin messages.")
+                    await asyncio.sleep(3)
+                await msg.delete()
+                
+            nrm = member.not_redirected_messages()
+            if len(nrm) > 0:
+                e = asyncio.Event()
+                op = BulkRedirectOperation(messages=reversed(nrm), member=member, finished=e)
+                info = async_partial(self.info, context=context)
+                msg: TM = await info(f"🔃 Loading latest messages ...", time=None)
+                await self.queue.put(op)
+                try:
+                    await asyncio.wait_for(e.wait(), 120)
+                except asyncio.TimeoutError:
+                    await msg.edit("⚠️ Timeout to load latest messages.")
+                    await asyncio.sleep(3)
+                await msg.delete()
+            
 
     @operation(req=None)
     async def on_start(
@@ -57,6 +103,18 @@ class Start:
         context: TM,
         parameters: dict,
     ):
+        async def welcome(self, user, member, context):
+            await self.send_welcome_msg(
+                user=user,
+                msg=self.group.welcome_message,
+                button_spec=self.group.welcome_message_buttons,
+                photo=self.group.welcome_message_photo,
+            )
+            await self.send_latest_messages(
+                member=member,
+                context=context,
+            )
+          
         member: Member = context.from_user.get_member(self.group)
         user: User = context.from_user.get_record()
         if member:
@@ -66,28 +124,10 @@ class Start:
             if member.role == MemberRole.LEFT:
                 member.role = MemberRole.GUEST
                 member.save()
-                await self.send_welcome_msg(
-                    user=user,
-                    msg=self.group.welcome_message,
-                    button_spec=self.group.welcome_message_buttons,
-                    photo=self.group.welcome_message_photo,
-                )
-                if self.group.welcome_latest_messages:
-                    nrm = member.s_not_redirected_messages(10)
-                    if nrm.count() > 0:
-                        e = asyncio.Event()
-                        op = BulkRedirectOperation(messages=reversed(list(nrm.iterator())), member=member, finished=e)
-                        info = async_partial(self.info, context=context)
-                        msg: TM = await info(f"🔃 Loading latest messages ...", time=None)
-                        await self.queue.put(op)
-                        try:
-                            await asyncio.wait_for(e.wait(), 120)
-                        except asyncio.TimeoutError:
-                            await msg.edit("⚠️ Timeout to load latest messages.")
-                            await asyncio.sleep(2)
-                        await msg.delete()
+                await welcome(self, user, member, context)
             else:
                 return (
+                    "ℹ️ Powered by @anonyabbot.\n"
                     "🌈 Group status:\n\n"
                     f" Members: {self.group.n_members}\n"
                     f" Non-Guests: {self.group.s_all_has_role(MemberRole.MEMBER).count()}\n\n"
@@ -97,13 +137,8 @@ class Start:
                     f"👁️‍🗨️ This panel is only visible to you."
                 )
         else:
-            Member.create(group=self.group, user=user, role=MemberRole.GUEST)
-            await self.send_welcome_msg(
-                user=user,
-                msg=self.group.welcome_message,
-                button_spec=self.group.welcome_message_buttons,
-                photo=self.group.welcome_message_photo,
-            )
+            member = Member.create(group=self.group, user=user, role=MemberRole.GUEST)
+            await welcome(self, user, member, context)
 
     @operation()
     async def on_leave_group_confirm(

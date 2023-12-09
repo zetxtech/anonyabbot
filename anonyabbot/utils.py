@@ -29,7 +29,10 @@ class AsyncTaskPool:
     def add(self, coro: Coroutine):
         async def wrapper():
             task = asyncio.ensure_future(coro)
-            await asyncio.wait([task])
+            try:
+                await asyncio.wait([task])
+            except asyncio.CancelledError:
+                task.cancel()
             async with self.waiter:
                 self.waiter.notify()
                 return await task

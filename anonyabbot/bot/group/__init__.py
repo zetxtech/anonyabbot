@@ -9,6 +9,7 @@ from pyrogram.types import BotCommand
 
 from ...utils import truncate_str
 from ...cache import CacheDict
+from ...config import config
 from ...model import UserRole, db, BanGroup, Group, User, Member, MemberRole
 from ..base import MenuBot
 from .mask import UniqueMask
@@ -65,6 +66,8 @@ class GroupBot(MenuBot, _Methods):
                 self.tasks.extend([asyncio.create_task(j) for j in self.jobs])
                 self.booted.set()
             await self.failed.wait()
+        except asyncio.CancelledError:
+            pass
         finally:
             for t in self.tasks:
                 t.cancel()
@@ -115,6 +118,11 @@ class GroupBot(MenuBot, _Methods):
                 Member.create(group=self.group, user=self.creator, role=MemberRole.CREATOR)
                 if not self.creator.validate(UserRole.GROUPER):
                     self.creator.add_role(UserRole.GROUPER)
+                if self.creator.validate(UserRole.INVITED):
+                    days = config.get('father.invite_award_days', 180)
+                    self.creator.add_role(UserRole.AWARDED, days=days)
+                    if self.creator.invited_by:
+                        self.creator.invited_by.add_role(UserRole.AWARDED, days=days)
         logger.info(f"Now listening updates in group: @{self.bot.me.username}.")
 
         await self.bot.set_bot_commands(

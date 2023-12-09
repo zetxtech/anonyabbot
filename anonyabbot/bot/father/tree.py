@@ -13,6 +13,7 @@ class Tree:
         menu = {
             M("start", default=True): {
                 M("my_info", "ℹ️ Profile"): {
+                    M("create_code", "🔗 Create Invite Link"): None,
                     M("use_code", "🗝️ Redeem Code"): None,
                 },
                 M("new_group", "💬 New Group"): {L("botfather", "Go to @botfather", url="t.me/botfather")},
@@ -22,6 +23,7 @@ class Tree:
                     "ℹ️ Created Groups:",
                     extras="new_group",
                 ): {M("jump_group_detail")},
+                L("feedback_group", "💬 Feedback", url="t.me/anonyabbot_chat_bot"): None,
             },
             M("_group_detail", back="list_group"): {
                 M("edit_group_profile", "⚒️ Group Profile", "ℹ️ Group avatar and description can only be edited in @botfather"): {

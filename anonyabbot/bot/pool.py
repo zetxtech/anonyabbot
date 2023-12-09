@@ -42,7 +42,9 @@ async def stop_group_bot(token: str):
         token_start_event.pop(token, None)
         token_cls.pop(token, None)
         task.cancel()
-
+        while not task.done():
+            await asyncio.sleep(1)
+            
 
 async def start_group_bot(token: str, creator: User):
     task: asyncio.Task = token_tasks.get(token, None)

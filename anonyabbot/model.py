@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import string
 from typing import Iterable, List, Type, Union
@@ -51,12 +51,12 @@ class UserRole(IntEnum):
 
     NONE = 0, "unknown user"
     BANNED = 10, "banned user"
+    INVITED = 15, "invited user"
     GROUPER = 20, "group creator user"
     AWARDED = 30, "awareded user"
     PAYING = 40, "paying user"
     ADMIN = 90, "system admin"
     CREATOR = 100, "system creator"
-
 
 class MemberRole(IntEnum):
     _init_ = "value display"
@@ -148,6 +148,10 @@ class User(BaseModel):
     def is_banned(self):
         return self.validate(UserRole.BANNED)
 
+    @property
+    def is_prime(self):
+        return self.validate([UserRole.PAYING, UserRole.AWARDED])
+
     def roles(self):
         for r in UserRole:
             if self.validate(r):
@@ -201,13 +205,13 @@ class User(BaseModel):
                     if days is None:
                         until = None
                     else:
-                        until = datetime.now() + datetime.timedelta(days=days)
+                        until = datetime.now() + timedelta(days=days)
                     validation = Validation(user=self, role=role, until=until)
                 else:
                     if days is None:
                         validation.until = None
                     else:
-                        validation.until += datetime.timedelta(days=days)
+                        validation.until += timedelta(days=days)
                 validation.save()
                 if from_request:
                     from_request.used = validation
@@ -258,9 +262,17 @@ class User(BaseModel):
     def use_code(self, code: str) -> List[ValidationRequest]:
         used = []
         with db.atomic():
-            vcs = ValidationRequest.select().where(ValidationRequest.code == code, ~(ValidationRequest.used))
+            vcs = ValidationRequest.select().where(ValidationRequest.code == code)
             vc: ValidationRequest
             for vc in vcs.iterator():
+                if vc.used:
+                    continue
+                if vc.created_by == self:
+                    continue
+                if (not vc.role == UserRole.INVITED) and (not vc.created_by.validate(vc.role, fail=False)):
+                    continue
+                if self.validate(vc.role, fail=False):
+                    continue
                 if vc.code == code and not vc.used:
                     self.add_validation(vc.role, days=vc.days, from_request=vc)
                     used.append(vc)
@@ -285,6 +297,14 @@ class User(BaseModel):
             else:
                 for mp in self.member_profiles.where(Member.role >= MemberRole.GUEST).join(Group).where(~(Group.disabled)).iterator():
                     yield mp.group
+    
+    @property
+    def invited_by(self):
+        v = self.validations.where(Validation.role == UserRole.INVITED).get_or_none()
+        if v:
+            vr = v.requests.get_or_none()
+            if vr:
+                return vr.created_by
 
 
 class Validation(BaseModel):
@@ -361,6 +381,10 @@ class Group(BaseModel):
     @property
     def n_messages(self):
         return self.messages.count()
+    
+    @property
+    def is_prime(self):
+        return self.creator.is_prime
 
     def default_bans(self):
         e: BanType
@@ -432,15 +456,19 @@ class Member(BaseModel):
         self.save()
 
     def validate(self, role: MemberRole, fail=False, reversed=False):
+        if self.user.validate(UserRole.CREATOR, fail=False):
+            current_role = MemberRole.ADMIN_ADMIN
+        else:
+            current_role = self.role
         if not reversed:
-            if self.role >= role:
+            if current_role >= role:
                 return True
             else:
                 if fail:
                     raise MemberRoleError(role, reversed=False)
                 return False
         else:
-            if self.role <= role:
+            if current_role <= role:
                 if fail:
                     raise MemberRoleError(role, reversed=True)
                 return False
@@ -463,16 +491,35 @@ class Member(BaseModel):
                     raise BanError(type=ban, member=False, until=self.group.default_ban_group.until)
                 return True
         return False
-    
-    def s_not_redirected_messages(self, limit: int = 10):
-        q = Message.select().where(~fn.EXISTS(RedirectedMessage.select().where((RedirectedMessage.message == Message.id) & (RedirectedMessage.to_member == self.id)))).order_by(Message.created.desc())
-        if limit:
-            q = q.limit(limit)
-        return q
             
-    def not_redirected_messages(self, limit: int = 10):
-        for u in self.s_not_redirected_messages(limit=limit).iterator():
-            yield u
+    def not_redirected_messages(self, limit: int = 10, days: int = 7):
+        results = []
+        for m in self.group.messages.order_by(Message.created.desc()).iterator():
+            if m.get_redirect_for(self) is None:
+                results.append(m)
+                if len(results) >= limit:
+                    break
+                if m.created < datetime.now() - timedelta(days=days):
+                    break
+            else:
+                break
+        return results
+    
+    def not_redirected_pinned_messages(self):
+        results = []
+        for m in self.group.messages.where(Message.pinned == True).order_by(Message.created.desc()).iterator():
+            if m.get_redirect_for(self) is None:
+                results.append(m)
+            else:
+                break
+        return results
+    
+    def s_pinned_messages(self):
+        return self.group.messages.where(Message.pinned == True).order_by(Message.created.desc())
+    
+    def pinned_messages(self):
+        for m in self.s_pinned_messages().iterator():
+            yield m
 
 class Message(BaseModel):
     id = AutoField()
@@ -481,6 +528,7 @@ class Message(BaseModel):
     member = ForeignKeyField(Member, backref="messages")
     mask = CharField()
     reply_to = ForeignKeyField('self', backref="replying_messages", null=True)
+    pinned = BooleanField(default=False)
     updated = DateTimeField(default=datetime.now)
     created = DateTimeField(default=datetime.now)
 

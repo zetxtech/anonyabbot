@@ -252,6 +252,7 @@ class Admin:
     ):
         group: Group = Group.get_by_id(parameters["group_id"])
         group.disabled = True
+        group.save()
         await stop_group_bot(group.token)
         await context.answer("✅ Succeed")
         await self.to_menu("_group_detail_admin", context)

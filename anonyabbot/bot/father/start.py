@@ -4,7 +4,8 @@ from pyrogram.types import Message as TM, CallbackQuery as TC
 
 import anonyabbot
 
-from ...model import User, Group
+from ...model import User, Group, UserRole
+from ...config import config
 from ...utils import remove_prefix, truncate_str
 from ..pool import stop_group_bot
 from .common import operation
@@ -24,9 +25,14 @@ class Start:
                 return None
             cmds = context.text.split()
             if len(cmds) == 2:
+                if cmds[1] == "_createcode":
+                    return await self.to_menu("create_code", context)
                 if cmds[1] == "_usecode":
                     return await self.to_menu("use_code", context)
-                elif cmds[1].startswith("_g_"):
+                if cmds[1].startswith("_c_"):
+                    code = remove_prefix(cmds[1], "_c_")
+                    return await self.to_menu("use_code", context, code=code)
+                if cmds[1].startswith("_g_"):
                     gid = remove_prefix(cmds[1], "_g_")
                     return await self.to_menu("_group_detail", context, gid=gid)
         return f"🌈 Welcome {context.from_user.name}!\n\n" "This bot allows you to create a completely anonymous group."
@@ -54,6 +60,23 @@ class Start:
         return msg
 
     @operation()
+    async def on_create_code(
+        self: "anonyabbot.FatherBot",
+        handler,
+        client: Client,
+        context: TC,
+        parameters: dict,
+    ):
+        user: User = context.from_user.get_record()
+        code = user.create_code(UserRole.INVITED, length = 8)
+        days = config.get('father.invite_award_days', 180)
+        return (
+            "🔗 Copy the invite link to your friends:\n\n"
+            f"`https://t.me/{self.bot.me.username}?start=_c_{code}`\n\n"
+            f"⭐ You will both get {days} days of PRIME when your friend creates his first anonymous group."
+        )
+
+    @operation()
     async def on_use_code(
         self: "anonyabbot.FatherBot",
         handler,
@@ -61,8 +84,28 @@ class Start:
         context: TC,
         parameters: dict,
     ):
-        self.set_conversation(context, "use_code")
-        return "❓ Type your code:"
+        if 'code' in parameters:
+            user: User = context.from_user.get_record()
+            used = user.use_code(parameters['code'])
+            if len(used) == 1 and used[0].role == UserRole.INVITED:
+                days = config.get('father.invite_award_days', 180)
+                msg = (
+                    f"🌈 Welcome {context.from_user.name}!\n\n"
+                    "This bot allows you to create a completely anonymous group.\n"
+                    f"You have been invited and will get {days} days of PRIME when you create your first anonymous group.\n\n"
+                    "ℹ️ Use /start to begin."
+                )
+            elif used:
+                msg = "ℹ️ You have obtained the following roles:\n"
+                for u in used:
+                    days = u.days if u.days else "permanent"
+                    msg += f" {u.role.display} ({days})\n"
+            else:
+                msg = "⚠️ Invalid invite link."
+            return msg
+        else:
+            self.set_conversation(context, "use_code")
+            return "❓ Type your code:"
 
     @operation()
     async def on_new_group(
