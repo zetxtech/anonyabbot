@@ -300,10 +300,6 @@ class OnCommand:
     async def on_pm(self: "anonyabbot.GroupBot", client: Client, message: TM):
         info = async_partial(self.info, context=message)
         
-        if not self.group.is_prime:
-            await info(f"⚠️ This function is only available to groups created by [prime](t.me/{self.bot.me.username}?start=_createcode) users.")
-            return
-        
         content = message.text or message.caption
         
         cmd = content.split(None, 1)

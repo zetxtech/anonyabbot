@@ -113,7 +113,7 @@ class Worker:
                 
                 rmr = None
                 if message.reply_to:
-                    rmr = message.reply_to.get_redirect_for(m)
+                    rmr = message.reply_to.get_redirect_for(op.member)
 
                 try:
                     if context.text:

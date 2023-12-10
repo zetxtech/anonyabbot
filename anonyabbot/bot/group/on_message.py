@@ -137,7 +137,7 @@ class OnMessage:
                             return
                         try:
                             member.check_ban(BanType.PIN_MASK)
-                            if not member.check_ban(BanType.MASK_STR, fail=False):
+                            if (not member.check_ban(BanType.MASK_STR, fail=False)):
                                 m = str(message.text)
                             else:
                                 m = "".join(e["emoji"] for e in emoji.emoji_list(str(message.text)))
@@ -145,9 +145,9 @@ class OnMessage:
                                     raise OperationError("only emojis are acceptable as masks")
                                 if len(m) > 1:
                                     member.check_ban(BanType.LONG_MASK_1)
-                                if len(m) >= 3:
+                                if len(m) > 2:
                                     member.check_ban(BanType.LONG_MASK_2)
-                                if len(m) >= 3:
+                                if len(m) > 3:
                                     member.check_ban(BanType.LONG_MASK_3)
                             dup_member = Member.get_or_none(Member.group == self.group, Member.pinned_mask == m)
                             if dup_member:
@@ -179,8 +179,7 @@ class OnMessage:
             await info(f"⚠️ Sorry, {e}, and this message will be deleted soon.", time=30)
             await message.delete()
             return
-
-
+        
         if member.role == MemberRole.GUEST:
             if self.group.chat_instruction:
                 event = asyncio.Event()
