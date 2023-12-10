@@ -269,8 +269,6 @@ class User(BaseModel):
                     continue
                 if (vc.role == UserRole.INVITED) and (vc.created_by == self):
                     continue
-                if (not vc.role == UserRole.INVITED) and (not vc.created_by.validate(vc.role, fail=False)):
-                    continue
                 if self.validate(vc.role, fail=False):
                     continue
                 if vc.code == code and not vc.used:
