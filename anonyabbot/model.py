@@ -267,7 +267,7 @@ class User(BaseModel):
             for vc in vcs.iterator():
                 if vc.used:
                     continue
-                if vc.created_by == self:
+                if (vc.role == UserRole.INVITED) and (vc.created_by == self):
                     continue
                 if (not vc.role == UserRole.INVITED) and (not vc.created_by.validate(vc.role, fail=False)):
                     continue
