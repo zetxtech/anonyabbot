@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import asynccontextmanager
 from datetime import timedelta
 import enum
 import inspect
@@ -75,6 +76,20 @@ def walk(l: Iterable[Iterable]):
         else:
             yield el
 
+@asynccontextmanager
+def nonblocking(lock: asyncio.Lock):
+    """Try to acquire the lock, if the lock is already acquired by other coroutions, skip the whole block."""
+    try:
+        asyncio.wait_for(lock.acquire(), 0)
+    except asyncio.TimeoutError:
+        yield False
+    else:
+        yield True
+    finally:
+        try:
+            lock.release()
+        except RuntimeError:
+            pass
 
 def flatten(l: Iterable[Iterable]):
     """Flatten a irregular n-dimensional list to a 1-dimensional list."""

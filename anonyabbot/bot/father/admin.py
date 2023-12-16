@@ -40,6 +40,7 @@ class Admin:
             f"Active Groups: {n_active_groups}",
             f"Running Time: {running_time}",
             f"Average Delay: {waiting_delay} seconds",
+            f"Average Members: {Group.get_avg_n_members()}",
             f"Messages: {Message.select().count()}",
         ]
         msg += indent("\n".join(fields), "  ")

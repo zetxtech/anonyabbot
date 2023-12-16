@@ -131,8 +131,6 @@ class Worker:
                     RedirectedMessage(mid=masked_message.id, message=message, to_member=op.member).save()
                 finally:
                     op.requests += 1
-            waiting_time = (datetime.now() - op.created).total_seconds() 
-            await self.report_status(waiting_time, op.requests, op.errors)
         except Exception as e:
             self.log.opt(exception=e).warning("Bulk redirector error:")
         finally:

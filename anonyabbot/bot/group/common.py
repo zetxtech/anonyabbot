@@ -1,3 +1,4 @@
+import asyncio
 from typing import Union
 
 from loguru import logger
@@ -6,11 +7,11 @@ from pyrogram.types import Message as TM, CallbackQuery as TC
 from pyrogram.errors import UserDeactivated, MessageNotModified
 
 import anonyabbot
-
+from ...utils import nonblocking
 from ...model import OperationError, MemberRole, Member
 
 
-def operation(req: MemberRole = MemberRole.GUEST, conversation=False, allow_disabled=False, touch=True):
+def operation(req: MemberRole = MemberRole.GUEST, conversation=False, allow_disabled=False, touch=True, concurrency='queue'):
     def deco(func):
         async def wrapper(*args, **kw):
             try:
@@ -36,7 +37,21 @@ def operation(req: MemberRole = MemberRole.GUEST, conversation=False, allow_disa
                             raise OperationError("you are not in this group")
                         member.validate(req, fail=True)
                         member.touch()
-                    return await func(*args, **kw)
+                    if not concurrency == 'inf':
+                        async with self.lock:
+                            if not member in self.member_locks:
+                                self.member_locks[member] = asyncio.Lock()
+                        if concurrency == 'queue':
+                            async with self.member_locks[member]:
+                                return await func(*args, **kw)
+                        elif concurrency == 'singleton':
+                            async with nonblocking(self.member_locks[member]) as locked:
+                                if locked:
+                                    return await func(*args, **kw)
+                        else:
+                            raise ValueError(f'{concurrency} is not a valid concurrency')
+                    else:
+                        return await func(*args, **kw)
                 except ContinuePropagation:
                     raise
                 except OperationError as e:

@@ -114,7 +114,7 @@ class Start:
                 member=member,
                 context=context,
             )
-          
+        
         member: Member = context.from_user.get_member(self.group)
         user: User = context.from_user.get_record()
         if member:

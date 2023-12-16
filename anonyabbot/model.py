@@ -370,6 +370,21 @@ class Group(BaseModel):
     @property
     def n_members(self):
         return self.members.where(Member.role >= MemberRole.GUEST).count()
+    
+    @classmethod
+    def get_avg_n_members(cls):
+        query = (
+            Member
+            .select(Member.group, fn.COUNT(Member.id).alias('count'))
+            .where(Member.role >= MemberRole.GUEST)
+            .group_by(Member.group)
+        )
+        average_query = (
+            query
+            .select(fn.AVG(query.c.count))
+            .scalar()
+        )
+        return average_query
 
     @property
     def n_messages(self):

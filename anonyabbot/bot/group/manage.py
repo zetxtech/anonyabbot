@@ -2,13 +2,13 @@ import asyncio
 from datetime import datetime
 from textwrap import indent
 from pyrogram import Client
-from pyrogram.types import Message as TM, CallbackQuery as TC
+from pyrogram.types import CallbackQuery as TC
 from pyrubrum import Element
 
 import anonyabbot
 
 from ...utils import truncate_str, parse_timedelta
-from ...model import Member, db, MemberRole, Group, BanType, BanGroup
+from ...model import Member, db, MemberRole, BanType, BanGroup
 from .common import operation
 
 
@@ -38,14 +38,18 @@ class Manage:
         group = self.group
         member: Member = context.from_user.get_member(self.group)
         creator = group.creator.markdown if member.role >= MemberRole.ADMIN_BAN else group.creator.masked_name
-        waiting_delay = f"{self.worker_status['time'] / self.worker_status['requests']:.1f}" if self.worker_status['requests'] else "inf"
+        if self.worker_status['requests']:
+            estimated_delay = self.worker_status['time'] / self.worker_status['requests'] * group.n_members
+            estimated_delay_spec = f"{estimated_delay:.1f} seconds"
+        else:
+            estimated_delay_spec = "<unknown>"
         msg = f"ℹ️ Group info:\n\n"
         fields = [
             f"Title: [{group.title}](t.me/{group.username})",
             f"Creator: {creator}",
             f"Members: {group.n_members}",
             f"Messages: {group.n_messages}",
-            f"Average Delay: {waiting_delay} seconds",
+            f"Estimated Delay: {estimated_delay_spec}",
             f"Disabled: {'**Yes**' if group.disabled else 'No'}",
             f"Created: {group.created.strftime('%Y-%m-%d')}",
             f"Last Activity: {group.last_activity.strftime('%Y-%m-%d')}",

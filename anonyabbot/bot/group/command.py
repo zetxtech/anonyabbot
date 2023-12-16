@@ -157,8 +157,8 @@ class OnCommand:
             f"Role in group: {target.role.display.title()}\n"
             f"Joining date: {target.created.strftime('%Y-%m-%d')}\n"
             f"Message count: {target.n_messages}\n"
-            f"Last Activity: {target.last_activity.strftime('%Y-%m-%d')}\n"
-            f"Last Mask: {target.last_mask}\n\n"
+            f"Last activity: {target.last_activity.strftime('%Y-%m-%d')}\n"
+            f"Last mask: {target.last_mask}\n\n"
             f"👁️‍🗨️ This panel is only visible to you."
         )
         await info(msg, time=15)
