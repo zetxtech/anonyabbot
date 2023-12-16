@@ -49,11 +49,15 @@ class OnCommand:
         msg: TM = await info(f"🔃 Message revoking for all members ...", time=None)
         n_members = self.group.n_members
         for i in range(5 * n_members):
-            if e.is_set():
+            try:
+                await asyncio.wait_for(e.wait(), 1)
+            except asyncio.TimeoutError:
+                pass
+            else:
                 await msg.edit(f"🗑️ Message revoked ({op.requests-op.errors}/{op.requests} successes).")
                 break
             if i % 10 == 0:
-                await msg.edit(f"🔃 essage revoking for all members ({op.requests}/{n_members}) ...")
+                await msg.edit(f"🔃 Message revoking for all members ({op.requests}/{n_members}) ...")
         else:
             await msg.edit("⚠️ Timeout to revoke this message for all members.")
         await asyncio.sleep(2)

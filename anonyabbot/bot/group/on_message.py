@@ -201,7 +201,11 @@ class OnMessage:
         await self.queue.put(op)
         n_members = self.group.n_members
         for i in range(5 * n_members):
-            if e.is_set():
+            try:
+                await asyncio.wait_for(e.wait(), 1)
+            except asyncio.TimeoutError:
+                pass
+            else:
                 await msg.edit(f"✅ Message sent ({op.requests-op.errors}/{op.requests} successes).")
                 break
             if i % 10 == 0:
