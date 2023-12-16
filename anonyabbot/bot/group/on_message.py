@@ -69,7 +69,7 @@ class OnMessage:
             event.set()
         await context.message.delete()
 
-    @operation(req=None, conversation=True, allow_disabled=True, concurrency='inf')
+    @operation(req=None, conversation=True, allow_disabled=True)
     async def on_message(self: "anonyabbot.GroupBot", client: Client, message: TM):
         info = async_partial(self.info, context=message, block=False)
         
@@ -199,12 +199,15 @@ class OnMessage:
             msg: TM = await info("🔃 Message sending ...", time=None)
         
         await self.queue.put(op)
-        try:
-            await asyncio.wait_for(e.wait(), 120)
-        except asyncio.TimeoutError:
-            await msg.edit("⚠️ Timeout to broadcast message to all users.")
+        n_members = self.group.n_members
+        for i in range(5 * n_members):
+            if e.is_set():
+                await msg.edit(f"✅ Message sent ({op.requests-op.errors}/{op.requests} successes).")
+                break
+            if i % 10 == 0:
+                await msg.edit(f"🔃 Message sending ({op.requests}/{n_members}) ...")
         else:
-            await msg.edit(f"✅ Message sent ({op.requests-op.errors}/{op.requests}).")
+            await msg.edit("⚠️ Timeout to broadcast message to all members.")
         await asyncio.sleep(2)
         await msg.delete()
 

@@ -92,10 +92,10 @@ class Start:
                 except asyncio.TimeoutError:
                     await msg.edit("⚠️ Timeout to load latest messages.")
                     await asyncio.sleep(3)
-                await msg.delete()
+                await msg.edit_text('💬 Latest messages:')
             
 
-    @operation(req=None)
+    @operation(req=None, concurrency='queue')
     async def on_start(
         self: "anonyabbot.GroupBot",
         handler,
@@ -150,7 +150,7 @@ class Start:
     ):
         member: Member = context.from_user.get_member(self.group)
         if member.role == MemberRole.CREATOR:
-            await context.answer("⚠️ Creator of the group can not leave.")
+            await context.answer("⚠️ Creator of the group cannot leave.", show_alert=True)
             await self.to_menu("start", context)
             return
         return f"⚠️ Are you sure to leave the group?\n⚠️ Your current role is: {member.role.display}."

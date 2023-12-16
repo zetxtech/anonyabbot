@@ -46,13 +46,16 @@ class OnCommand:
         e = asyncio.Event()
         op = DeleteOperation(member=member, finished=e, message=mr)
         await self.queue.put(op)
-        msg: TM = await info(f"🔃 Message revoking from all users...", time=None)
-        try:
-            await asyncio.wait_for(e.wait(), 120)
-        except asyncio.TimeoutError:
-            await msg.edit("⚠️ Timeout to revoke this message.")
+        msg: TM = await info(f"🔃 Message revoking for all members ...", time=None)
+        n_members = self.group.n_members
+        for i in range(5 * n_members):
+            if e.is_set():
+                await msg.edit(f"🗑️ Message revoked ({op.requests-op.errors}/{op.requests} successes).")
+                break
+            if i % 10 == 0:
+                await msg.edit(f"🔃 essage revoking for all members ({op.requests}/{n_members}) ...")
         else:
-            await msg.edit(f"🗑️ Message deleted ({op.requests-op.errors}/{op.requests}).")
+            await msg.edit("⚠️ Timeout to revoke this message for all members.")
         await asyncio.sleep(2)
         await msg.delete()
 
@@ -170,7 +173,7 @@ class OnCommand:
         target: Member = mr.member
         return await self.to_menu_scratch("_member_detail", message.chat.id, message.from_user.id, member_id=target.id)
 
-    @operation(MemberRole.MEMBER, concurrency='inf')
+    @operation(MemberRole.MEMBER)
     async def pm(self, message: TM):
         info = async_partial(self.info, context=message)
 

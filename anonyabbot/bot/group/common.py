@@ -8,10 +8,10 @@ from pyrogram.errors import UserDeactivated, MessageNotModified
 
 import anonyabbot
 from ...utils import nonblocking
-from ...model import OperationError, MemberRole, Member
+from ...model import OperationError, MemberRole, Member, User
 
 
-def operation(req: MemberRole = MemberRole.GUEST, conversation=False, allow_disabled=False, touch=True, concurrency='queue'):
+def operation(req: MemberRole = MemberRole.GUEST, conversation=False, allow_disabled=False, touch=True, concurrency='inf'):
     def deco(func):
         async def wrapper(*args, **kw):
             try:
@@ -38,20 +38,15 @@ def operation(req: MemberRole = MemberRole.GUEST, conversation=False, allow_disa
                         member.validate(req, fail=True)
                         member.touch()
                     if not concurrency == 'inf':
-                        try:
-                            member
-                        except NameError:
-                            member: Member = context.from_user.get_member(self.group)
-                            if not member:
-                                raise OperationError("you are not in this group")
+                        user: User = context.from_user.get_record()
                         async with self.lock:
-                            if not member in self.member_locks:
-                                self.member_locks[member] = asyncio.Lock()
+                            if not user in self.user_locks:
+                                self.user_locks[user] = asyncio.Lock()
                         if concurrency == 'queue':
-                            async with self.member_locks[member]:
+                            async with self.user_locks[user]:
                                 return await func(*args, **kw)
                         elif concurrency == 'singleton':
-                            async with nonblocking(self.member_locks[member]) as locked:
+                            async with nonblocking(self.user_locks[user]) as locked:
                                 if locked:
                                     return await func(*args, **kw)
                         else:
