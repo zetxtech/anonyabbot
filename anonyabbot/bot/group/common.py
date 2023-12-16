@@ -38,6 +38,12 @@ def operation(req: MemberRole = MemberRole.GUEST, conversation=False, allow_disa
                         member.validate(req, fail=True)
                         member.touch()
                     if not concurrency == 'inf':
+                        try:
+                            member
+                        except NameError:
+                            member: Member = context.from_user.get_member(self.group)
+                            if not member:
+                                raise OperationError("you are not in this group")
                         async with self.lock:
                             if not member in self.member_locks:
                                 self.member_locks[member] = asyncio.Lock()

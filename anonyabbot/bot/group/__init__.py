@@ -1,6 +1,6 @@
 import asyncio
 import hashlib
-from typing import List
+from typing import Dict
 
 from loguru import logger
 from pyrogram import filters
@@ -35,7 +35,7 @@ class GroupBot(MenuBot, _Methods):
         self.log = logger.bind(scheme="group")
         self.unique_mask_pool = UniqueMask(self.token)
         self.lock = asyncio.Lock()
-        self.member_locks: List[asyncio.Lock] = []
+        self.member_locks: Dict[Member, asyncio.Lock] = {}
         self.queue = WorkerQueue(f'group.{self.token}.worker.queue', self.bot)
         self.worker_status = CacheDict(
             f'group.{self.token}.worker.status',

@@ -379,12 +379,13 @@ class Group(BaseModel):
             .where(Member.role >= MemberRole.GUEST)
             .group_by(Member.group)
         )
-        average_query = (
-            query
-            .select(fn.AVG(query.c.count))
-            .scalar()
-        )
-        return average_query
+
+        try:
+            average = sum(q.count for q in query) / len(query)
+        except ZeroDivisionError:
+            return 0
+        else:
+            return average
 
     @property
     def n_messages(self):

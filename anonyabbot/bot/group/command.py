@@ -170,6 +170,7 @@ class OnCommand:
         target: Member = mr.member
         return await self.to_menu_scratch("_member_detail", message.chat.id, message.from_user.id, member_id=target.id)
 
+    @operation(MemberRole.MEMBER, concurrency='inf')
     async def pm(self, message: TM):
         info = async_partial(self.info, context=message)
 

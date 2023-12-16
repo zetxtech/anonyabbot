@@ -69,7 +69,7 @@ class OnMessage:
             event.set()
         await context.message.delete()
 
-    @operation(req=None, conversation=True, allow_disabled=True)
+    @operation(req=None, conversation=True, allow_disabled=True, concurrency='inf')
     async def on_message(self: "anonyabbot.GroupBot", client: Client, message: TM):
         info = async_partial(self.info, context=message, block=False)
         
