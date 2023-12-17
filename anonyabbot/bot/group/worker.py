@@ -38,15 +38,6 @@ class EditOperation(Operation):
 class DeleteOperation(Operation):
     message: Message
 
-
-@dataclass(kw_only=True)
-class PinOperation(Operation):
-    message: Message
-
-@dataclass(kw_only=True)
-class UnpinOperation(Operation):
-    message: Message
-
 @dataclass(kw_only=True)
 class BulkRedirectOperation(Operation):
     messages: List[Message]
@@ -299,62 +290,6 @@ class Worker:
                             op.errors += 1
                         finally:
                             op.requests += 1
-
-                elif isinstance(op, PinOperation):
-                    if self.group.cannot(BanType.RECEIVE):
-                        op.finished.set()
-                        continue
-
-                    m: Member
-                    for m in self.group.user_members():
-                        if m.is_banned:
-                            continue
-                        
-                        try:
-                            if m.id == op.message.member.id:
-                                await self.bot.pin_chat_message(
-                                    op.message.member.user.uid, op.message.mid, both_sides=True, disable_notification=True
-                                )
-                            else:
-                                masked_message = op.message.get_redirect_for(m)
-                                if masked_message:
-                                    await self.bot.pin_chat_message(
-                                        masked_message.to_member.user.uid, masked_message.mid, both_sides=True, disable_notification=True
-                                    )
-                        except RPCError as e:
-                            if isinstance(e, (UserIsBlocked, UserDeactivated)) and not m.role == MemberRole.CREATOR:
-                                m.role = MemberRole.LEFT
-                                m.save()
-                            op.errors += 1
-                        finally:
-                            op.requests += 1
-
-                elif isinstance(op, UnpinOperation):
-                    if self.group.cannot(BanType.RECEIVE):
-                        op.finished.set()
-                        continue
-
-                    m: Member
-                    for m in self.group.user_members():
-                        if m.is_banned:
-                            continue
-
-                        try:
-                            if m.id == op.message.member.id:
-                                await self.bot.unpin_chat_message(op.message.member.user.uid, op.message.mid)
-                            else:
-                                masked_message = op.message.get_redirect_for(m)
-                                if masked_message:
-                                    await self.bot.unpin_chat_message(masked_message.to_member.user.uid, masked_message.mid)
-                        except RPCError as e:
-                            if isinstance(e, (UserIsBlocked, UserDeactivated)) and not m.role == MemberRole.CREATOR:
-                                m.role = MemberRole.LEFT
-                                m.save()
-                            op.errors += 1
-                        finally:
-                            op.requests += 1
-                waiting_time = (datetime.now() - op.created).total_seconds() 
-                await self.report_status(waiting_time, op.requests, op.errors)
             except Exception as e:
                 self.log.opt(exception=e).warning("Worker error:")
             finally:

@@ -8,7 +8,7 @@ import anonyabbot
 from ...model import MemberRole, Member, OperationError, BanType, Message, PMBan, PMMessage, RedirectedMessage, User
 from ...utils import async_partial
 from .common import operation
-from .worker import DeleteOperation, PinOperation, UnpinOperation
+from .worker import DeleteOperation
 from .mask import MaskNotAvailable
 
 
@@ -63,21 +63,6 @@ class OnCommand:
         member: Member = message.from_user.get_member(self.group)
         _, mask = await self.unique_mask_pool.get_mask(member, renew=True)
         await info(f"🌈 Your mask has been changed to: {mask}")
-
-    @operation(MemberRole.MEMBER)
-    async def on_setmask(self: "anonyabbot.GroupBot", client: Client, message: TM):
-        await message.delete()
-        info = async_partial(self.info, context=message)
-        user: User = message.from_user.get_record()
-        if not user.is_prime:
-            await info(f"⚠️ This function is only available to [prime](t.me/{self.bot.me.username}?start=_createcode) users.")
-            return
-        msg: TM = await info("⬇️ Please enter an emoji as your mask:", time=None)
-        self.set_conversation(message, "sm_mask", data=msg)
-        await asyncio.sleep(120)
-        if await msg.delete():
-            self.set_conversation(message, None)
-            await info("⚠️ Timeout.", time=2)
 
     @operation()
     async def on_ban(self: "anonyabbot.GroupBot", client: Client, message: TM):
@@ -158,54 +143,6 @@ class OnCommand:
         target.role = MemberRole.GUEST
         target.save()
         return await info("✅ Member unbanned.")
-
-    @operation(MemberRole.ADMIN_MSG)
-    async def on_pin(self: "anonyabbot.GroupBot", client: Client, message: TM):
-        await message.delete()
-        info = async_partial(self.info, context=message)
-        user: User = message.from_user.get_record()
-        if (not self.group.is_prime) and (not user.is_prime):
-            await info(f"⚠️ This function is only available to groups created by [prime](t.me/{self.bot.me.username}?start=_createcode) users.")
-            return
-        member, mr = self.get_member_reply_message(message)
-        mr.pinned = True
-        mr.save()
-        e = asyncio.Event()
-        op = PinOperation(member=member, finished=e, message=mr)
-        await self.queue.put(op)
-        msg: TM = await info(f"🔃 Pinning message for all users...", time=None)
-        try:
-            await asyncio.wait_for(e.wait(), 120)
-        except asyncio.TimeoutError:
-            await msg.edit("⚠️ Timeout to pin this message.")
-        else:
-            await msg.edit(f"📌 Message pinned ({op.requests-op.errors}/{op.requests}).")
-        await asyncio.sleep(2)
-        await msg.delete()
-
-    @operation(MemberRole.ADMIN_MSG)
-    async def on_unpin(self: "anonyabbot.GroupBot", client: Client, message: TM):
-        await message.delete()
-        info = async_partial(self.info, context=message)
-        user: User = message.from_user.get_record()
-        if (not self.group.is_prime) and (not user.is_prime):
-            await info(f"⚠️ This function is only available to groups created by [prime](t.me/{self.bot.me.username}?start=_createcode) users.")
-            return
-        member, mr = self.get_member_reply_message(message)
-        mr.pinned = False
-        mr.save()
-        e = asyncio.Event()
-        op = UnpinOperation(member=member, finished=e, message=mr)
-        await self.queue.put(op)
-        msg: TM = await info(f"🔃 Unpinning message for all users...", time=None)
-        try:
-            await asyncio.wait_for(e.wait(), 120)
-        except asyncio.TimeoutError:
-            await msg.edit("⚠️ Timeout to unpin this message.")
-        else:
-            await msg.edit(f"📌 Message unpinned ({op.requests-op.errors}/{op.requests}).")
-        await asyncio.sleep(2)
-        await msg.delete()
 
     @operation(MemberRole.ADMIN_BAN)
     async def on_reveal(self: "anonyabbot.GroupBot", client: Client, message: TM):

@@ -127,41 +127,6 @@ class OnMessage:
                         self.group.chat_instruction = message.text
                         self.group.save()
                         await info(f"✅ Succeed.")
-                elif conv.status == "sm_mask":
-                    content = message.text or message.caption
-                    if not content:
-                        await info(f"⚠️ Not a valid message.")
-                    else:
-                        member: Member = message.from_user.get_member(self.group)
-                        if not member:
-                            return
-                        try:
-                            member.check_ban(BanType.PIN_MASK)
-                            if (not member.check_ban(BanType.MASK_STR, fail=False)):
-                                m = str(message.text)
-                            else:
-                                m = "".join(e["emoji"] for e in emoji.emoji_list(str(message.text)))
-                                if not m:
-                                    raise OperationError("only emojis are acceptable as masks")
-                                if len(m) > 1:
-                                    member.check_ban(BanType.LONG_MASK_1)
-                                if len(m) > 2:
-                                    member.check_ban(BanType.LONG_MASK_2)
-                                if len(m) > 3:
-                                    member.check_ban(BanType.LONG_MASK_3)
-                            dup_member = Member.get_or_none(Member.group == self.group, Member.pinned_mask == m)
-                            if dup_member:
-                                raise OperationError("this mask has already been taken")
-                            if not await self.unique_mask_pool.take_mask(member, m):
-                                raise OperationError("this mask has already been taken")
-                        except OperationError as e:
-                            await info(f"⚠️ Sorry, {e}.")
-                            await conv.data.delete()
-                        else:
-                            member.pinned_mask = m
-                            member.save()
-                            await info(f"✅ Succeed, your mask is pinned as {m}.")
-                            await conv.data.delete()
             finally:
                 await message.delete()
                 if isinstance(conv.context, TM):

@@ -88,11 +88,8 @@ class GroupBot(MenuBot, _Methods):
 
         self.bot.add_handler(MessageHandler(self.on_delete, common_filter & filters.command("delete")))
         self.bot.add_handler(MessageHandler(self.on_change, common_filter & filters.command("change")))
-        self.bot.add_handler(MessageHandler(self.on_setmask, common_filter & filters.command("setmask")))
         self.bot.add_handler(MessageHandler(self.on_ban, common_filter & filters.command("ban")))
         self.bot.add_handler(MessageHandler(self.on_unban, common_filter & filters.command("unban")))
-        self.bot.add_handler(MessageHandler(self.on_pin, common_filter & filters.command("pin")))
-        self.bot.add_handler(MessageHandler(self.on_unpin, common_filter & filters.command("unpin")))
         self.bot.add_handler(MessageHandler(self.on_reveal, common_filter & filters.command("reveal")))
         self.bot.add_handler(MessageHandler(self.on_manage, common_filter & filters.command("manage")))
         self.bot.add_handler(MessageHandler(self.on_pm, common_filter & filters.command("pm")))
@@ -131,11 +128,8 @@ class GroupBot(MenuBot, _Methods):
                 BotCommand("delete", "Delete the replied message"),
                 BotCommand("pm", "Send private message to the replied member"),
                 BotCommand("change", "Change a random mask"),
-                BotCommand("setmask", "Set your mask"),
                 BotCommand("ban", "(Admin/PM) Ban [member]"),
                 BotCommand("unban", "(Admin/PM) Unban [member]"),
-                BotCommand("pin", "(Admin) Pin a message"),
-                BotCommand("unpin", "(Admin) Unpin a message"),
                 BotCommand("reveal", "(Admin) Reveal member info"),
                 BotCommand("manage", "(Admin) Manage member"),
             ]

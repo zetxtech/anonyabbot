@@ -84,11 +84,6 @@ class BanType(IntEnum):
     MARKUP = 23, "send messages with reply markups"
     LONG = 24, "send messages longer than 200 characters"
     LINK = 25, "send messages including links or mentions"
-    PIN_MASK = 30, "pin a mask"
-    LONG_MASK_1 = 40, "pin a mask longer than 1 emojis"
-    LONG_MASK_2 = 41, "pin a mask longer than 2 emojis"
-    LONG_MASK_3 = 42, "pin a mask longer than 3 emojis"
-    MASK_STR = 43, "pin a mask with non-emojis"
     PM_USER = 50, "pm other user in the group"
     PM_ADMIN = 51, "pm admins in the group"
 
