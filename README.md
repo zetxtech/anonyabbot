@@ -18,7 +18,16 @@ Goto [@anonyabbot](https://t.me/anonyabbot), then follow the instructions in the
 3. Your masquerade is set.
 
 ### Deploy by yourself
-Create a `config.toml`:
+
+The version on Github might be lagging behind the version used by [@anonyabbot](https://t.me/anonyabbot).
+
+1. Clone the repo:
+
+```bash
+git clone https://github.com/anonyabbot/anonyabbot.git
+```
+
+2. Create a `config.toml`:
 
 ```toml
 [tele]
@@ -27,6 +36,20 @@ api_hash = "abcde1234567890abcde1234567890"
 
 [father]
 token = "12345678:AbCdEfG-123456789"
+```
+
+3. Create an python environment and install:
+
+```bash
+python -m venv venv
+. venv/bin/activate
+pip install -e .
+```
+
+4. Start bot server:
+
+```bash
+anonyabbot config.toml
 ```
 
 Your self-deployed version SHOULD clearly identify this repository on `/start`. Thanks.
