@@ -331,7 +331,7 @@ class BanGroup(BaseModel):
     created = DateTimeField(default=datetime.now)
     until = DateTimeField(default=datetime.now, null=True)
 
-    default_types = [BanType.MASK_STR]
+    default_types = []
 
     @classmethod
     def generate(cls, types: List[BanType] = None, until: datetime = None):
