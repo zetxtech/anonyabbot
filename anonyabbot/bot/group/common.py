@@ -22,6 +22,7 @@ def operation(req: MemberRole = MemberRole.GUEST, conversation=False, allow_disa
                     self, handler, client, context, parameters = args  # from menu
                 elif len(args) == 3:
                     self, client, context = args  # from message
+                
                 else:
                     raise ValueError("wrong number of arguments")
                 try:
