@@ -1,12 +1,15 @@
 import asyncio
+import random
+import string
 from pyrogram import Client
-from pyrogram.types import Message as TM
+from pyrogram.types import Message as TM, CallbackQuery as TC
 from pyrogram.errors import RPCError
+from pyrubrum import Element
 
 import anonyabbot
 
 from ...model import MemberRole, Member, OperationError, BanType, Message, PMBan, PMMessage, RedirectedMessage, User
-from ...utils import async_partial
+from ...utils import async_partial, parse_timedelta
 from .common import operation
 from .worker import DeleteOperation
 from .mask import MaskNotAvailable
@@ -41,14 +44,14 @@ class OnCommand:
         member, mr = self.get_member_reply_message(message)
         member.check_ban(BanType.MESSAGE)
         if not mr.member.id == member.id:
-            if not member.role >= MemberRole.ADMIN_BAN:
+            if not member.validate(MemberRole.ADMIN_BAN):
                 return await info(f"⚠️ Only messages sent by you can be deleted.")
         e = asyncio.Event()
         op = DeleteOperation(member=member, finished=e, message=mr)
         await self.queue.put(op)
         msg: TM = await info(f"🔃 Message revoking for all members ...", time=None)
         n_members = self.group.n_members
-        for i in range(5 * n_members):
+        for i in range(30 + 5 * n_members):
             try:
                 await asyncio.wait_for(e.wait(), 1)
             except asyncio.TimeoutError:
@@ -179,7 +182,8 @@ class OnCommand:
 
     @operation(MemberRole.MEMBER)
     async def pm(self, message: TM):
-        info = async_partial(self.info, context=message)
+        info = async_partial(self.info, context=message, block=False)
+        binfo = async_partial(self.info, context=message)
 
         content = message.text or message.caption
         
@@ -201,7 +205,7 @@ class OnCommand:
                 raise OperationError('this user is not willing to receive private messages from you')
             self.check_message(message, member)
         except OperationError as e:
-            await info(f"⚠️ Sorry, {e}, and this message will be deleted soon.", time=30)
+            await binfo(f"⚠️ Sorry, {e}, and this message will be deleted soon.", time=30)
             await message.delete()
             return
         
@@ -212,7 +216,7 @@ class OnCommand:
             try:
                 created, mask = await self.unique_mask_pool.get_mask(member)
             except MaskNotAvailable:
-                await info(f"⚠️ Sorry, no mask is currently available, please set mask manually and try again. This message will be deleted soon.", time=30)
+                await binfo(f"⚠️ Sorry, no mask is currently available, please set mask manually and try again. This message will be deleted soon.", time=30)
                 await message.delete()
                 return
         

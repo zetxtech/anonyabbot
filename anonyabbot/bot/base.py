@@ -22,7 +22,7 @@ from pyrubrum import (
     PageStyle,
 )
 
-from .. import __name__ as __product__
+from .. import __product__
 
 from ..utils import to_iterable
 from ..config import config

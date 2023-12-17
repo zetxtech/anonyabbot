@@ -73,14 +73,18 @@ class Cache:
                 pass
         return val
         
-    def set(self, key=None, val=Def):
+    def set(self, key=None, val=Def, ttl=None):
         if not self.source:
             self.__class__.refresh()
         if val is Def:
             raise ValueError('value must be provided')
         if not isinstance(val, (int, str)):
             pval = dill.dumps(val)
-        self.source[self.get_path(key)] = pval
+        else:
+            pval = val
+        if ttl is not None and ttl < 0:
+            ttl = self.source.ttl(self.get_path(key))
+        self.source.set(self.get_path(key), pval, ex=ttl)
     
 class CacheDict(ProxyBase):
     __noproxy__ = ("_cache", "_path", "_default")
@@ -99,9 +103,9 @@ class CacheDict(ProxyBase):
         if self._cache is None or force:
             self._cache = Cache(self._path).get(default=self._default)
     
-    def save(self):
+    def save(self, ttl=None):
         self.reload(force=False)
-        Cache(self._path).set(val=self._cache)
+        Cache(self._path).set(val=self._cache, ttl=ttl)
         
 class CacheQueue(ProxyBase):
     __noproxy__ = ("_cache", "_list", "_path")

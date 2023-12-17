@@ -64,7 +64,7 @@ class OnMessage:
         parameters: dict,
     ):
         conv = self.conversation.get((context.message.chat.id, context.from_user.id), None)
-        if conv.status == "ci_confirm":
+        if conv and conv.status == "ci_confirm":
             event: asyncio.Event = conv.data
             event.set()
         await context.message.delete()
@@ -72,6 +72,7 @@ class OnMessage:
     @operation(req=None, conversation=True, allow_disabled=True)
     async def on_message(self: "anonyabbot.GroupBot", client: Client, message: TM):
         info = async_partial(self.info, context=message, block=False)
+        binfo = async_partial(self.info, context=message)
         
         if message.text and message.text.startswith("/"):
             message.continue_propagation()
@@ -115,7 +116,7 @@ class OnMessage:
                                 photo=self.group.welcome_message_photo,
                             )
                             await self.to_menu_scratch(
-                                "_ewmb_ok_confirm", message.chat.id, message.from_user.id, button_spec=message.text, text_message=tm.id
+                                "_ewmb_ok_confirm", message.chat.id, message.from_user.id, button_spec=content, text_message=tm.id
                             )
                         except ValueError:
                             await info(f"⚠️ Format error.")
@@ -124,7 +125,9 @@ class OnMessage:
                     if not content:
                         await info(f"⚠️ Not a valid message.")
                     else:
-                        self.group.chat_instruction = message.text
+                        if content == "disable":
+                            content = None
+                        self.group.chat_instruction = content
                         self.group.save()
                         await info(f"✅ Succeed.")
             finally:
@@ -141,7 +144,7 @@ class OnMessage:
                 raise OperationError("you are not in this group, try /start to join")
             self.check_message(message, member)
         except OperationError as e:
-            await info(f"⚠️ Sorry, {e}, and this message will be deleted soon.", time=30)
+            await binfo(f"⚠️ Sorry, {e}, and this message will be deleted soon.", time=30)
             await message.delete()
             return
         
@@ -166,7 +169,7 @@ class OnMessage:
             try:
                 created, mask = await self.unique_mask_pool.get_mask(member)
             except MaskNotAvailable:
-                await info(f"⚠️ Sorry, no mask is currently available, please set mask manually and try again. This message will be deleted soon.", time=30)
+                await binfo(f"⚠️ Sorry, no mask is currently available, please set mask manually and try again. This message will be deleted soon.", time=30)
                 await message.delete()
                 return
 
@@ -200,7 +203,7 @@ class OnMessage:
         
         await self.queue.put(op)
         n_members = self.group.n_members
-        for i in range(5 * n_members):
+        for i in range(30 + 5 * n_members):
             try:
                 await asyncio.wait_for(e.wait(), 1)
             except asyncio.TimeoutError:
