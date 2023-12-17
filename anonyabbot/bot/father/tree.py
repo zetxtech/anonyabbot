@@ -16,7 +16,7 @@ class Tree:
                     M("create_code", "🔗 Create Invite Link"): None,
                     M("use_code", "🗝️ Redeem Code"): None,
                 },
-                M("new_group", "💬 New Group"): {L("botfather", "Go to @botfather", url="t.me/botfather")},
+                M("new_group", "➕ New Group"): {L("botfather", "Go to @botfather", url="t.me/botfather")},
                 P(
                     "list_group",
                     "⚒️ My Groups",

@@ -127,7 +127,7 @@ class Start:
                 await welcome(self, user, member, context)
             else:
                 return (
-                    "ℹ️ Powered by @anonyabbot.\n"
+                    "ℹ️ Powered by @anonyabbot.\n\n"
                     "🌈 Group status:\n\n"
                     f" Members: {self.group.n_members}\n"
                     f" Non-Guests: {self.group.s_all_has_role(MemberRole.MEMBER).count()}\n\n"
