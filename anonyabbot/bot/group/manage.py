@@ -7,7 +7,7 @@ from pyrubrum import Element
 
 import anonyabbot
 
-from ...utils import truncate_str, parse_timedelta
+from ...utils import async_partial, truncate_str, parse_timedelta
 from ...model import Member, db, MemberRole, BanType, BanGroup
 from .common import operation
 
@@ -119,22 +119,6 @@ class Manage:
             original.delete_instance()
         await context.answer("✅ Succeed.")
         await self.to_menu("_group_details", context)
-
-    @operation(MemberRole.ADMIN_ADMIN)
-    async def on_edit_password(
-        self: "anonyabbot.GroupBot",
-        handler,
-        client: Client,
-        context: TC,
-        parameters: dict,
-    ):
-        self.set_conversation(context, "ep_password")
-        if self.group.password:
-            msg = f"ℹ️ Current group passowrd is `{self.group.password}`"
-        else:
-            msg = f"ℹ️ Group passowrd is not set. Free to join."
-        msg += f"\n\n⬇️ Type your password to set (only visible to you):"
-        return msg
 
     @operation(MemberRole.ADMIN_MSG)
     async def on_edit_welcome_message(

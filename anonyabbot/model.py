@@ -145,7 +145,7 @@ class User(BaseModel):
 
     @property
     def is_prime(self):
-        return self.validate([UserRole.PAYING, UserRole.AWARDED])
+        return self.validate([UserRole.PAYING, UserRole.AWARDED, UserRole.ADMIN, UserRole.CREATOR])
 
     def roles(self):
         for r in UserRole:
