@@ -4,3 +4,6 @@ __author__ = {
 }
 __version__ = "1.0.0"
 __url__ = "https://github.com/anonyabbot/anonyabbot"
+
+from .bot.father import FatherBot
+from .bot.group import GroupBot
