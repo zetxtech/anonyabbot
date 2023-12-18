@@ -217,7 +217,7 @@ class OnMessage:
             else:
                 await msg.edit(f"✅ Message sent ({op.requests-op.errors}/{op.requests} successes).")
                 break
-            if i % 10 == 0:
+            if i % 40 == 0:
                 await msg.edit(f"🔃 Message sending ({op.requests}/{n_members}) ...")
         else:
             await msg.edit("⚠️ Timeout to broadcast message to all members.")

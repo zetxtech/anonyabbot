@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List
 
-from pyrogram.types import Message as TM
+from pyrogram.types import Message as TM, MessageEntity
 from pyrogram.errors import RPCError, UserIsBlocked, UserDeactivated
 
 import anonyabbot
@@ -186,9 +186,25 @@ class Worker:
                     content = op.context.text or op.context.caption
 
                     if content:
-                        content = f"{op.message.mask} | {content}"
+                        prefix = f"{op.message.mask} | "
+                        content = f"{prefix}{content}"
+                        offset = len(prefix) + 1
                     else:
                         content = f"{op.message.mask} has sent a media."
+                        offset = len(content) + 1
+
+                    if op.context.text:   
+                        op.context.text = content
+                        if op.context.entities:
+                            e: MessageEntity
+                            for e in op.context.entities:
+                                e.offset += offset
+                    else:
+                        op.context.caption = content
+                        if op.context.caption_entities:
+                            e: MessageEntity
+                            for e in op.context.caption_entities:
+                                e.offset += offset
 
                     m: Member
                     for m in self.group.user_members():
@@ -205,7 +221,6 @@ class Worker:
 
                         try:
                             if op.context.text:
-                                op.context.text = content
                                 masked_message = await op.context.copy(
                                     m.user.uid,
                                     reply_to_message_id=rmr.mid if rmr else None,
