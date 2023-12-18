@@ -465,10 +465,10 @@ class Member(BaseModel):
         self.save()
 
     def validate(self, role: MemberRole, fail=False, reversed=False):
+        current_role = self.role
         if self.user.validate(UserRole.CREATOR, fail=False):
-            current_role = MemberRole.ADMIN_ADMIN
-        else:
-            current_role = self.role
+            if current_role < MemberRole.ADMIN_ADMIN:
+                current_role = MemberRole.ADMIN_ADMIN
         if not reversed:
             if current_role >= role:
                 return True
