@@ -76,6 +76,9 @@ class OnMessage:
         
         if message.text and message.text.startswith("/"):
             message.continue_propagation()
+            
+        if message.empty or message.service:
+            message.continue_propagation()
 
         if message.empty or message.service:
             message.continue_propagation()
