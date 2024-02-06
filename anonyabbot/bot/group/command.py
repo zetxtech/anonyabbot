@@ -59,7 +59,7 @@ class OnCommand:
             else:
                 await msg.edit(f"🗑️ Message revoked ({op.requests-op.errors}/{op.requests} successes).")
                 break
-            if i % 40 == 0:
+            if i and (i % 10 == 0):
                 await msg.edit(f"🔃 Message revoking for all members ({op.requests}/{n_members}) ...")
         else:
             await msg.edit("⚠️ Timeout to revoke this message for all members.")

@@ -82,15 +82,17 @@ class UniqueMask:
         unused = [e for e in self.emojis if e not in self.masks.keys()]
         if unused:
             return random.choice(unused)
-        oldest_avail = None
+        oldest_avail_role = None
+        oldest_avail_timestamp = None
         for role, (uid, t) in self.masks.items():
             if t > (datetime.now() + timedelta(days=3)):
                 continue
-            if (not oldest_avail) or (t < oldest_avail):
-                oldest_avail = role
-        if oldest_avail:
-            uid, _ = self.masks[oldest_avail]
+            if (not oldest_avail_role) or (t < oldest_avail_timestamp):
+                oldest_avail_role = role
+                oldest_avail_timestamp = t
+        if oldest_avail_role:
+            uid, _ = self.masks[oldest_avail_role]
             del self.users[uid]
-            return oldest_avail
+            return oldest_avail_role
         else:
             raise MaskNotAvailable()
