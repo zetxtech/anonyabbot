@@ -49,6 +49,7 @@ class Bot:
             proxy=config.get("proxy", None),
             workdir=config.get("basedir", user_data_dir(__product__)),
             workers=128,
+            sleep_threshold=60,
         )
         self.jobs = []
         self.tasks = []
