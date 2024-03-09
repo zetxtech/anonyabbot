@@ -39,7 +39,7 @@ class UniqueMask:
                 if t > (datetime.now() + timedelta(days=3)):
                     return False
                 else:
-                    del self.users[uid]
+                    self.users.pop(uid, None)
             self.users[member.id] = role
             self.masks[role] = (member.id, datetime.now())
             return True   
@@ -92,7 +92,7 @@ class UniqueMask:
                 oldest_avail_timestamp = t
         if oldest_avail_role:
             uid, _ = self.masks[oldest_avail_role]
-            del self.users[uid]
+            self.users.pop(uid, None)
             return oldest_avail_role
         else:
             raise MaskNotAvailable()
