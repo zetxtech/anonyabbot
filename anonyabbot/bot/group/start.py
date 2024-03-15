@@ -10,16 +10,21 @@ from ...utils import async_partial
 from .worker import BulkRedirectOperation, BulkPinOperation
 from .common import operation
 
+class SafeDict(dict):
+    def __missing__(self, key):
+        return '{' + key + '}'
 
 class Start:
     async def send_welcome_msg(self: "anonyabbot.GroupBot", user: User, msg: str = None, button_spec: str = None, photo: str = None):
         if msg:
-            msg = msg.format(
-                first_name=user.firstname,
-                last_name=user.lastname,
-                masked_name=user.masked_name,
-                name=user.name,
-                markdown=user.markdown,
+            msg = msg.format_map(
+                SafeDict({
+                    'first_name': user.firstname,
+                    'last_name': user.lastname,
+                    'masked_name': user.masked_name,
+                    'name': user.name,
+                    'markdown': user.markdown,
+                })
             )
         else:
             msg = (
