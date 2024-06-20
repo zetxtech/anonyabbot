@@ -188,10 +188,12 @@ class Worker:
                     if content:
                         prefix = f"{op.message.mask} | "
                         content = f"{prefix}{content}"
-                        offset = len(prefix) + 1
+                        offset = 0
+                        for c in prefix:
+                            offset += 1 if ord(c) < 65536 else 2
                     else:
                         content = f"{op.message.mask} has sent a media."
-                        offset = len(content) + 1
+                        offset = 0
 
                     if op.context.text:   
                         op.context.text = content
