@@ -5,7 +5,7 @@ from typing import Dict
 from loguru import logger
 from pyrogram import filters
 from pyrogram.handlers import MessageHandler, EditedMessageHandler
-from pyrogram.errors import UserDeactivated
+from pyrogram.errors import UserDeactivated, RPCError
 from pyrogram.types import BotCommand
 
 from ...utils import truncate_str
@@ -77,6 +77,8 @@ class GroupBot(MenuBot, _Methods):
             try:
                 await self.bot.stop()
             except ConnectionError:
+                pass
+            except RPCError:
                 pass
             else:
                 if self.group:
