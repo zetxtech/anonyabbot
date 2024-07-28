@@ -2,7 +2,7 @@
 
 **Anonyabbot** is a bot for creating fully anonymous groups. ([@anonyabbot](https://t.me/anonyabbot)).
 
-[![Screenshot](https://github.com/anonyabbot/.github/raw/main/images/button.svg)](https://t.me/anonyabbot)
+[![Screenshot](https://github.com/zetxtech/.github/raw/main/images/button.svg)](https://t.me/anonyabbot)
 
 ### Features
 1. Anonymous groups are created as bots, where messages are broadcasted to all members.
@@ -24,7 +24,7 @@ The version on Github might be lagging behind the version used by [@anonyabbot](
 1. Clone the repo:
 
 ```bash
-git clone https://github.com/anonyabbot/anonyabbot.git
+git clone https://github.com/zetxtech/anonyabbot.git
 ```
 
 2. Create a `config.toml`:
