@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<svg width="260" height="60" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <!-- Created with SVG-edit - https://github.com/SVG-Edit/svgedit-->
+ <defs>
+  <symbol height="512" id="svg_20" viewBox="0 0 512 512" width="512" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg">
+   <g id="svg_4" transform="translate(297.22034,0)">
+    <rect fill="#64a9dc" fill-rule="nonzero" height="512" id="svg_16" rx="64" ry="64" width="512" x="-297.22" y="0"/>
+    <path d="m127.88,94.2l-346.35,133.59c-23.64,9.48 -23.5,22.66 -4.31,28.54l86.38,26.96l33.06,101.34c4.01,11.09 2.03,15.49 13.68,15.49c8.99,0 12.97,-4.1 17.98,-8.99c3.18,-3.12 22.08,-21.49 43.19,-42.01l89.85,66.39c16.53,9.12 28.47,4.39 32.59,-15.36l58.98,-277.94c6.04,-24.21 -9.23,-35.19 -25.05,-28.01zm-250.72,182.9l194.7,-122.84c9.72,-5.89 18.63,-2.72 11.32,3.77l-166.72,150.42l-6.49,69.24l-32.81,-100.59z" fill="#ffffff" id="svg_5"/>
+   </g>
+  </symbol>
+  <linearGradient id="svg_22" x1="0" x2="0" y1="1" y2="0">
+   <stop id="jq_stop_3331" offset="0" stop-color="#a1c4fd" stop-opacity="0.98"/>
+   <stop id="jq_stop_5835" offset="1" stop-color="#a6c1ee"/>
+  </linearGradient>
+ </defs>
+ <g class="layer">
+  <title>Layer 1</title>
+  <rect fill="url(#svg_22)" height="52" id="svg_1" rx="23" ry="23" stroke="#000000" stroke-opacity="0.14" transform="matrix(1 0 0 1 0 0)" width="254" x="2.5" y="4">Wiki</rect>
+  <text fill="#000000" font-family="Courier" font-size="18" font-weight="bold" id="svg_17" stroke="#000000" stroke-opacity="0.14" stroke-width="0" style="cursor: move;" text-anchor="middle" transform="matrix(1.26047 0 0 1.26047 -17.8864 -35.9022)" x="134.39" xml:space="preserve" y="57.8">Anonyabbot</text>
+  <use id="svg_21" transform="matrix(0.0635291 0 0 0.0691706 -3.31795 -12.4881)" x="360.27" xlink:href="#svg_20" y="363.08"/>
+ </g>
+</svg>
