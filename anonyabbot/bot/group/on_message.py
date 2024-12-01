@@ -5,6 +5,7 @@ import emoji
 from pyrogram import Client
 from pyrogram.types import Message as TM, CallbackQuery as TC
 from pyrogram.enums import MessageEntityType
+from pyrogram.errors import MessageDeleteForbidden
 
 import anonyabbot
 
@@ -138,10 +139,13 @@ class OnMessage:
                         await info(f"✅ Succeed.")
             finally:
                 await message.delete()
-                if isinstance(conv.context, TM):
-                    await conv.context.delete()
-                elif isinstance(conv.context, TC):
-                    await conv.context.message.delete()
+                try:
+                    if isinstance(conv.context, TM):
+                        await conv.context.delete()
+                    elif isinstance(conv.context, TC):
+                        await conv.context.message.delete()
+                except MessageDeleteForbidden:
+                    pass
                 self.set_conversation(conv.context, None)
                 return
         try:
