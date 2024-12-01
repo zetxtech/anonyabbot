@@ -19,6 +19,7 @@ patch_pyrogram()
 
 from .bot.pool import start as start_pool
 from .bot.father import FatherBot
+from .bot.pm import PMBot
 from .model import BaseModel, db
 
 
@@ -70,6 +71,6 @@ def main(
     db.create_tables(BaseModel.__subclasses__())
 
     async def async_main():
-        await asyncio.gather(FatherBot(config["father.token"]).start(), start_pool())
+        await asyncio.gather(FatherBot(config["father.token"]).start(), PMBot(config["pm.token"]).start(), start_pool())
 
     asyncio.run(async_main())

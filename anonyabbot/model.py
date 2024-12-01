@@ -571,3 +571,15 @@ class PMMessage(BaseModel):
     mid = IntegerField(index=True)
     redirected_mid = IntegerField(index=True)
     time = DateTimeField(default=datetime.now)
+    
+class DevPMBan(BaseModel):
+    id = AutoField()
+    user = ForeignKeyField(User, backref="pm_bans")
+    until = DateTimeField(default=datetime.now)
+    
+class DevPMLog(BaseModel):
+    id = AutoField()
+    user = ForeignKeyField(User, backref="pm_logs")
+    message = IntegerField(unique=True)
+    redirected_message = IntegerField(unique=True)
+    time = DateTimeField(default=datetime.now)
