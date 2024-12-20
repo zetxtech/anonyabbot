@@ -36,7 +36,7 @@ class UniqueMask:
         async with self.lock:
             if role in self.masks:
                 uid, t = self.masks[role]
-                if t > (datetime.now() + timedelta(days=3)):
+                if t > (datetime.now() - timedelta(days=3)):
                     return False
                 else:
                     self.users.pop(uid, None)
@@ -85,7 +85,7 @@ class UniqueMask:
         oldest_avail_role = None
         oldest_avail_timestamp = None
         for role, (uid, t) in self.masks.items():
-            if t > (datetime.now() + timedelta(days=3)):
+            if t > (datetime.now() - timedelta(days=3)):
                 continue
             if (not oldest_avail_role) or (t < oldest_avail_timestamp):
                 oldest_avail_role = role
