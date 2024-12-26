@@ -35,9 +35,6 @@ class Start:
                 if cmds[1].startswith("_g_"):
                     gid = remove_prefix(cmds[1], "_g_")
                     return await self.to_menu("_group_detail", context, gid=gid)
-                if cmds[1].startswith("_u_"):
-                    gid = remove_prefix(cmds[1], "_g_")
-                    return await self.to_menu("_group_detail", context, gid=gid)
         return f"🌈 Welcome {context.from_user.name}!\n\nThis bot allows you to create a completely anonymous group.\n\nGithub: https://github.com/zetxtech/anonyabbot"
 
     @operation(prohibited=None)
