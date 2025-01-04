@@ -89,10 +89,10 @@ class Cache:
 class CacheDict(ProxyBase):
     __noproxy__ = ("_cache", "_path", "_default")
     
-    def __init__(self, path=None, default={}):
+    def __init__(self, path=None, default=None):
         self._cache = None
         self._path = path
-        self._default = default
+        self._default = {} if default is None else default
         
     @property
     def __subject__(self):
